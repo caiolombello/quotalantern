@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.0-alpha.2
+
+Restore an at-a-glance quota ring around the approved Facho optical mark.
+Fill follows the actual 0–100% reported usage rather than fixed buckets.
+Select one named recent subscription window, never aggregate cost or incompatible
+allowances. Separate unknown and stale neutral shapes; disclose source, age and
+partial coverage in the tray context. Keep app/launcher/landing branding.
+Fix the offline GTK test fixture so CI does not depend on system GI.
+The installed Ayatana binding lacks dedicated tooltip properties; full context
+is exported as Title/IconAccessibleDesc and shown in the menu. Native hover
+and native pixel review remain pending.
+
 ## v0.1.0-alpha.1
 
 Initial public source snapshot: A/Facho logo and optical small-size assets,

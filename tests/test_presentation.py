@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from xml.etree import ElementTree
 from codexbar_linux.core.models import ProviderUsage, UsageWindow
-from codexbar_linux.presentation import reading_details, tray_icon_name
-from codexbar_linux.icons import ensure_icons
+from codexbar_linux.presentation import reading_details, tray_icon_name, tray_reading
+from codexbar_linux.icons import ensure_icons, gauge_svg
 
 class ReadingPresentationTests(unittest.TestCase):
     now = datetime(2026, 10, 1, 12, tzinfo=timezone.utc)
@@ -31,16 +31,22 @@ class ReadingPresentationTests(unittest.TestCase):
         self.assertIn("older than 10 min", self.details(primary=UsageWindow(10), updated_at=self.now-timedelta(seconds=601))[2])
     def test_error_is_visible_even_with_usage(self):
         self.assertIn("reported a problem", self.details(primary=UsageWindow(10), error="HTTP 500")[2])
-    def test_icons_retain_four_status_keys_and_distinct_shapes(self):
-        with tempfile.TemporaryDirectory() as directory:
-            for theme in ("light", "dark"):
-                paths = ensure_icons(directory, theme=theme)
-                self.assertEqual(set(paths), {"neutral", "ok", "warning", "critical"})
-                marks=[]
-                for path in paths.values():
-                    svg=ElementTree.parse(path).getroot()
-                    marks.append(list(svg)[-1].attrib["d"])
-                self.assertEqual(len(set(marks)), 4)
+    def test_ring_is_proportional_and_unknown_is_not_zero(self):
+        ns = {"s": "http://www.w3.org/2000/svg"}
+        for theme in ("light", "dark"):
+            arcs = []
+            for pct in (0, 50, 100):
+                root = ElementTree.fromstring(gauge_svg(pct, "critical" if pct == 100 else "ok", theme))
+                arc = root.findall("s:circle", ns)[1]
+                arcs.append(float(arc.attrib["stroke-dasharray"].split()[0]))
+            self.assertEqual(arcs[0], 0)
+            self.assertAlmostEqual(arcs[1] * 2, arcs[2], places=2)
+            unknown = ElementTree.fromstring(gauge_svg(None, "unknown", theme))
+            stale = ElementTree.fromstring(gauge_svg(None, "stale", theme))
+            self.assertNotEqual(unknown.findall("s:circle", ns)[1].attrib["stroke-dasharray"], stale.findall("s:circle", ns)[1].attrib["stroke-dasharray"])
+            self.assertIn("quota unconfirmed", gauge_svg(None, "unknown", theme))
+        for pct in (-1, 101, True, float("nan")):
+            with self.assertRaises(ValueError): gauge_svg(pct, "ok")
 
 class TrayUncertaintyTests(unittest.TestCase):
     now = ReadingPresentationTests.now
@@ -65,27 +71,52 @@ class TrayUncertaintyTests(unittest.TestCase):
         from unittest import mock
         # The earlier builder test supplies GTK doubles; no real display is needed.
         from tests.test_cost_presentation import CostPresentationTests
-        CostPresentationTests().build(ProviderUsage(provider="openai-api", source="synthetic", balance_usd=0))
-        from codexbar_linux.tray import TrayApp
+        builder = CostPresentationTests()
+        builder.build(ProviderUsage(provider="openai-api", source="synthetic", balance_usd=0))
+        TrayApp = builder.tray_class
         usage = ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(20), updated_at=self.now)
         with tempfile.TemporaryDirectory() as directory:
             app = object.__new__(TrayApp)
             app.indicator = mock.Mock()
             app.icon_paths = ensure_icons(directory, theme="light")
+            app.icon_theme = "light"
             app._last_usages = [usage]
             app._last_next_reset = ""
             app._dashboard = None
             app.get_config = None
             app._build_menu = mock.Mock()
-            with mock.patch("codexbar_linux.tray.tray_icon_name", side_effect=lambda usages, **thresholds: tray_icon_name(usages, now=self.now, **thresholds)):
+            with mock.patch.object(builder.tray_module, "tray_reading", side_effect=lambda usages, **thresholds: tray_reading(usages, now=self.now, **thresholds)):
                 app._apply_status_icon()
-            self.assertEqual(app.indicator.set_icon_full.call_args.args[0], app.icon_paths["ok"])
-            with mock.patch("codexbar_linux.tray.tray_icon_name", side_effect=lambda usages, **thresholds: tray_icon_name(usages, now=self.now+timedelta(seconds=601), **thresholds)):
+            self.assertIn("quota-ok-20-", app.indicator.set_icon_full.call_args.args[0])
+            self.assertIn("Source: synthetic", app.indicator.set_title.call_args.args[0])
+            with mock.patch.object(builder.tray_module, "tray_reading", side_effect=lambda usages, **thresholds: tray_reading(usages, now=self.now+timedelta(seconds=601), **thresholds)):
                 self.assertTrue(app._on_countdown_tick())
-            self.assertEqual(app.indicator.set_icon_full.call_args.args[0], app.icon_paths["neutral"])
+            self.assertIn("quota-stale-none-", app.indicator.set_icon_full.call_args.args[0])
+            self.assertIn("stale", app.indicator.set_label.call_args.args[0])
 
     def test_icon_uses_current_configuration_thresholds(self):
         usage=ProviderUsage(provider="codex",source="synthetic",primary=UsageWindow(80),updated_at=self.now)
         self.assertEqual(tray_icon_name([usage],now=self.now,warn_at=85,crit_at=95),"ok")
         self.assertEqual(tray_icon_name([usage],now=self.now,warn_at=75,crit_at=95),"warning")
         self.assertEqual(tray_icon_name([usage],now=self.now,warn_at=70,crit_at=80),"critical")
+
+    def test_mixed_providers_select_one_named_window_not_an_average(self):
+        usages = [ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(20, 300), updated_at=self.now),
+                  ProviderUsage(provider="claude", source="synthetic", secondary=UsageWindow(80, 10080), updated_at=self.now),
+                  ProviderUsage(provider="gemini-api", source="synthetic", primary=UsageWindow(100), updated_at=self.now)]
+        reading = tray_reading(usages, now=self.now)
+        self.assertEqual(reading.percent, 80)
+        self.assertIn("Claude Secondary (168h)", reading.label)
+        self.assertIn("not total quota", reading.description)
+        self.assertIn("Source: synthetic", reading.description)
+        self.assertIn("Updated:", reading.description)
+
+    def test_stale_is_distinct_and_partial_coverage_is_disclosed(self):
+        stale = ProviderUsage(provider="claude", source="synthetic", primary=UsageWindow(100), updated_at=self.now-timedelta(minutes=11))
+        reading = tray_reading([stale], now=self.now)
+        self.assertEqual((reading.state, reading.percent), ("stale", None))
+        fresh = ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(0), updated_at=self.now)
+        reading = tray_reading([stale, fresh], now=self.now)
+        self.assertEqual((reading.state, reading.percent), ("ok", 0))
+        self.assertIn("Unconfirmed: Claude: stale", reading.description)
+        self.assertIn("Codex", reading.label)

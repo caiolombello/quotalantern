@@ -70,6 +70,8 @@ class CostPresentationTests(unittest.TestCase):
             sys.modules.pop("codexbar_linux.tray", None)
             dashboard = importlib.import_module("codexbar_linux.dashboard")
             tray = importlib.import_module("codexbar_linux.tray")
+            self.tray_class = tray.TrayApp
+            self.tray_module = tray
             card_app = object.__new__(dashboard.DashboardWindow)
             card_app.open_urls = {}
             card_app.on_refresh_provider = mock.Mock()

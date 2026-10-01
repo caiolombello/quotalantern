@@ -3,7 +3,7 @@
 AI usage, quotas, resets and costs in your Linux desktop tray. Python + GTK 3,
 Ayatana AppIndicator and libnotify. Independent project with A/Facho identity.
 
-**v0.1.0-alpha.1 — initial source preview.** Native integration was exercised on
+**v0.1.0-alpha.2 — proportional tray source preview.** Native integration was exercised on
 KDE Plasma/Wayland: GTK window mapped, SVG loaded, tray registered and test
 notification accepted. Pixel-level native visual review, GNOME and high-DPI
 coverage remain pending. Web screenshots/concepts use synthetic data.
@@ -42,7 +42,14 @@ app before rollback. `--json` queries enabled providers; `--check` is offline.
 Missing or invalid readings are unknown, not zero. Costs use currency units
 and are not displayed as quota. Pagination must complete or report an error.
 Headroom recommendations are limited to qualified fresh Codex readings; stale,
-failed or missing reads stay neutral in the tray. The tray menu gives context.
+failed or missing reads stay neutral in the tray. The tray ring displays the actual
+consumed fraction of one named, recent subscription window: the largest
+reported fraction is an attention heuristic, not a total or average across
+services and not a recommendation. Costs are excluded. Unknown uses a dotted
+neutral ring/dash; stale uses a dashed neutral ring/clock. Mixed coverage is
+disclosed in the title and menu. Source and age update every minute; bindings
+with tooltip properties also receive a dedicated tooltip. Older Ayatana
+bindings expose Title/IconAccessibleDesc; native hover rendering is pending QA.
 
 Provider credentials and usage history are sensitive. Enabling an adapter
 permits its existing code to read its configured local credential source and
@@ -56,7 +63,7 @@ python3 run_offline.py
 python3 scripts/check_public.py
 ```
 
-70 synthetic offline tests passed in the release snapshot. Tests block network,
+72 synthetic offline tests passed in the release snapshot. Tests block network,
 subprocesses and real user files and use a temporary HOME. This verifies the
 covered cases, not every provider response or every Linux desktop. CI repeats
 these checks on Python 3.12 and 3.14.

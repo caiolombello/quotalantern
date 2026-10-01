@@ -44,6 +44,7 @@ class CodexBarLinuxApp:
 
         self.tray = TrayApp(
             icon_paths=icon_paths,
+            icon_theme=theme,
             on_refresh=self.refresh_async,
             on_refresh_provider=self.refresh_provider_async,
             on_quit=self.quit,

@@ -25,7 +25,8 @@ from .core.models import ProviderUsage, UsageWindow
 from .dashboard import DashboardWindow
 from .providers import PROVIDER_BY_ID
 from . import ui_common as ui
-from .presentation import APP_NAME, reading_details, tray_icon_name
+from .presentation import APP_NAME, reading_details, tray_reading
+from .icons import ensure_gauge_icon
 
 logger = logging.getLogger("codexbar-linux")
 
@@ -48,8 +49,10 @@ class TrayApp:
         open_urls: dict[str, str] | None = None,
         get_config: Optional[Callable[[], AppConfig]] = None,
         on_config_saved: Optional[Callable[[AppConfig], None]] = None,
+        icon_theme: str = "dark",
     ):
         self.icon_paths = icon_paths
+        self.icon_theme = icon_theme
         self.on_refresh = on_refresh
         self.on_refresh_provider = on_refresh_provider
         self.on_quit = on_quit
@@ -73,6 +76,12 @@ class TrayApp:
     def _build_menu(self, usages: list[ProviderUsage], next_reset: str = "") -> Gtk.Menu:
         menu = Gtk.Menu()
         cfg = self._cfg()
+
+        reading = tray_reading(usages, warn_at=cfg.threshold_warning, crit_at=cfg.threshold_critical)
+        ring_info = Gtk.MenuItem(label="Tray ring · " + reading.description)
+        ring_info.set_sensitive(False)
+        menu.append(ring_info)
+        menu.append(Gtk.SeparatorMenuItem())
 
         header = self._build_header_label(usages, next_reset, cfg)
         if header:
@@ -349,12 +358,12 @@ class TrayApp:
     def _show_about(self) -> None:
         dialog = Gtk.AboutDialog()
         dialog.set_program_name(APP_NAME)
-        dialog.set_version("0.4.0 — local review candidate")
+        dialog.set_version("0.1.0-alpha.2")
         dialog.set_comments(
             "AI coding provider usage monitor for Linux\n"
-            "Local review candidate · source, freshness and uncertainty"
+            "Source preview · source, freshness and uncertainty"
         )
-        dialog.set_website("https://github.com/caiolombello/codexbar-linux")
+        dialog.set_website("https://github.com/caiolombello/quotalantern")
         dialog.set_website_label("GitHub")
         dialog.run()
         dialog.destroy()
@@ -405,11 +414,22 @@ class TrayApp:
 
     def _apply_status_icon(self) -> None:
         cfg = self._cfg()
-        icon_path = self.icon_paths.get(tray_icon_name(
+        reading = tray_reading(
             self._last_usages, warn_at=cfg.threshold_warning, crit_at=cfg.threshold_critical
-        ), "")
+        )
+        directory = os.path.dirname(self.icon_paths["neutral"])
+        icon_path = ensure_gauge_icon(directory, reading.percent, reading.state, self.icon_theme)
         if self.indicator is not None and icon_path and os.path.exists(icon_path):
-            self.indicator.set_icon_full(icon_path, APP_NAME)
+            description = APP_NAME + " — " + reading.description
+            self.indicator.set_icon_full(icon_path, description)
+            # New bindings expose a dedicated tooltip. Older ones export the
+            # full context through Title/IconAccessibleDesc and the tray menu.
+            self.indicator.set_title(description)
+            if self.indicator.find_property("tooltip-body") is not None:
+                self.indicator.set_property("tooltip-title", APP_NAME + " — " + reading.label)
+                self.indicator.set_property("tooltip-body", reading.description)
+            label = self._tray_label(self._last_usages, cfg) if cfg.label_mode == "recommend" else reading.label
+            self.indicator.set_label(label, label)
 
     def update(
         self,
@@ -430,12 +450,6 @@ class TrayApp:
         cfg = self._cfg()
         self._apply_status_icon()
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
-
-        label = self._tray_label(usages, cfg)
-        if label:
-            self.indicator.set_label(label, label)
-        else:
-            self.indicator.set_label("", "")
 
         if self._dashboard is not None:
             self._dashboard.update(usages, next_reset, self._last_updated_at)
