@@ -1,0 +1,14 @@
+{
+  "openai_pages": [
+    {"data": [{"results": [{"amount": {"value": 12.5, "currency": "usd"}}]}], "has_more": true, "next_page": "fixture & next"},
+    {"data": [{"results": [{"amount": {"value": 0.25, "currency": "usd"}}]}], "has_more": false, "next_page": null}
+  ],
+  "anthropic_pages": [
+    {"data": [{"results": [{"amount": "700"}]}], "has_more": true, "next_page": "fixture-next"},
+    {"data": [{"results": [{"amount": "550.5"}]}], "has_more": false, "next_page": null}
+  ],
+  "codex_valid": {"rate_limit": {"primary_window": {"used_percent": 0, "limit_window_seconds": 18000}, "secondary_window": {"used_percent": 20, "limit_window_seconds": 604800}}},
+  "codex_invalid": {"rate_limit": {"primary_window": {"used_percent": "invalid"}}},
+  "kiro_valid": {"usageBreakdownList": [{"resourceType": "CREDIT", "usageLimitWithPrecision": 100, "currentUsageWithPrecision": 20}]},
+  "kiro_missing_used": {"usageBreakdownList": [{"resourceType": "CREDIT", "usageLimitWithPrecision": 100}]}
+}

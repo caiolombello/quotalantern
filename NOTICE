@@ -1,0 +1,21 @@
+QuotaLantern
+
+MIT applies to the original QuotaLantern contributions. Third-party works
+retain their own copyright and license; this notice does not relicense them.
+
+codexbar_linux/path_env.py declares inspiration from CodexBar's
+PathEnvironment.swift, LoginShellPathCache, BinaryLocator and TTYCommandRunner.
+CodexBar: https://github.com/steipete/CodexBar
+Copyright (c) 2026 Peter Steinberger. MIT License.
+The full MIT text is preserved in LICENSES/CodexBar-MIT.txt. The reference
+examined was commit 841332993413e0ff438b1e26e213f55d45fcefdb; it is a comparison
+reference, not a claim that this exact revision was the original source.
+
+QuotaLantern is an independent Linux project, not an official macOS CodexBar
+release. See ORIGIN.md for local-project lineage and DEPENDENCIES.md for system
+components and service boundaries.
+
+The A/Facho filled-path artwork was created and reviewed as vector code for
+QuotaLantern in October 2026. It replaces the previous local icon; that old
+asset is not part of this source snapshot. Fonts and desktop sounds are system
+resources and are not bundled.

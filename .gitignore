@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env*
+*.pem
+*.key
+credentials*.json
+*_cookie*
+*_headers.json
+state.json
+history.jsonl
+*.log
+tests-after.txt
+validation-after.json
+build/
+dist/

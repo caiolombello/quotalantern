@@ -1,0 +1,3 @@
+# Pure-Python dependencies only.
+# PyGObject and Notify come from the system python3-gi package.
+# Install with: sudo apt install python3-gi gir1.2-appindicator3-0.1 gir1.2-notify-0.7
