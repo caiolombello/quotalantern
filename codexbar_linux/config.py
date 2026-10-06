@@ -35,7 +35,7 @@ DEFAULT_OPEN_URLS: dict[str, str] = {
     "grok": "https://grok.com/?_s=usage",
     "kiro": "https://app.kiro.dev/settings/account",
     "openai-api": "https://platform.openai.com/settings/organization/billing/overview",
-    "opencode-go": "https://opencode.ai/",
+    "opencode-go": "https://opencode.ai/console/",
     "zen": "https://opencode.ai/",
     "cursor": "https://cursor.com/dashboard",
     "glm": "https://z.ai/",

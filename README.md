@@ -56,6 +56,15 @@ permits its existing code to read its configured local credential source and
 query its service. Service terms remain separate from this project's MIT
 license. No telemetry or account access occurs in the PT/EN website.
 
+OpenCode Go signs in through **Settings → Credentials → OpenCode Go → Sign in**.
+Authorize QuotaLantern in the browser and select the workspace with your Go
+subscription. It stores a separate OAuth session in the private
+`~/.local/share/codexbar-linux/opencode/` directory and renews it automatically;
+it does not copy OpenCode CLI credentials or require a browser cookie. Disconnect
+removes only QuotaLantern's session. Go meters come from the Console's current
+JSON endpoint, which is not yet a documented public API. The Zen adapter retains
+its separate legacy cookie behavior.
+
 ## Offline validation
 
 ```sh

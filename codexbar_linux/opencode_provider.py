@@ -1,246 +1,149 @@
-"""OpenCode Go provider.
+"""OpenCode Go usage from the Console API using QuotaLantern's OAuth session.
 
-The public Go model API does not document current usage windows. This provider
-validates the API key through `/models` and optionally scrapes the authenticated
-workspace Go dashboard when `OPENCODE_AUTH_COOKIE` is available.
+The Console currently uses /api/go/status for these meters. This endpoint is
+not a documented public API, so validate its response before displaying usage.
 """
 
-import html
 import json
-import os
 import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from pathlib import Path
+from datetime import datetime, timezone
 from typing import Optional
 
-from .core.resilience import RetryConfig, retry
+from .opencode_auth import OAuthError, OAuthSession, get_session
 
 
-OPENCODE_GO_MODELS_URL = "https://opencode.ai/zen/go/v1/models"
-DEFAULT_WORKSPACE_ID = "wrk_01KEAF6115M0KXGH91W0881STM"
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) codexbar-linux/0.2"
+OPENCODE_GO_STATUS_URL = "https://opencode.ai/console/api/go/status"
+USER_AGENT = "QuotaLantern/0.2"
+MICROCENTS_PER_DOLLAR = 100_000_000
 
 
 @dataclass
 class GoLimitWindow:
     name: str
-    amount_usd: int
+    amount_usd: float
     description: str
     used_percent: Optional[int] = None
     reset_description: str = ""
+    resets_at: Optional[datetime] = None
+    used_usd: Optional[float] = None
 
 
 @dataclass
 class OpenCodeStats:
     plan: str = "OpenCode Go"
     model_count: int = 0
-    limits: tuple[GoLimitWindow, ...] = (
-        GoLimitWindow("5 hour", 12, "$12 of usage every 5 hours"),
-        GoLimitWindow("Weekly", 30, "$30 of usage per week"),
-        GoLimitWindow("Monthly", 60, "$60 of usage per month"),
-    )
+    limits: tuple[GoLimitWindow, ...] = ()
     usage_available: bool = False
     workspace_id: str = ""
-    cookie_expired: bool = False
+    cookie_expired: bool = False  # Kept for existing snapshot readers.
     error: Optional[str] = None
 
 
-def _load_api_key() -> Optional[str]:
-    """Load OpenCode Go API key without logging or exposing it."""
-    env_key = os.environ.get("OPENCODE_GO_API_KEY") or os.environ.get("OPENCODE_API_KEY")
-    if env_key:
-        return env_key.strip()
-
-    auth_path = Path.home() / ".local/share/opencode/auth.json"
-    try:
-        data = json.loads(auth_path.read_text())
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return None
-
-    provider = data.get("opencode-go")
-    if isinstance(provider, dict):
-        key = provider.get("key")
-        if isinstance(key, str) and key.strip():
-            return key.strip()
-    return None
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError("OpenCode Console redirect rejected")
 
 
-def _load_dashboard_cookie() -> Optional[str]:
-    """Load opencode.ai dashboard auth cookie from env or a local private file."""
-    raw = os.environ.get("OPENCODE_AUTH_COOKIE", "").strip()
-    if raw:
-        return _sanitize_cookie(raw)
-
-    cookie_path = Path.home() / ".local/share/codexbar-linux/opencode_auth_cookie"
-    try:
-        mode = cookie_path.stat().st_mode
-        if mode & 0o077:
-            return None
-        raw = cookie_path.read_text().strip()
-    except OSError:
-        return None
-    return _sanitize_cookie(raw) if raw else None
-
-
-def _sanitize_cookie(value: str) -> Optional[str]:
-    """Reject cookies that contain newlines (header injection)."""
-    if "\r" in value or "\n" in value:
-        return None
-    return value
-
-
-def _workspace_id() -> str:
-    raw = os.environ.get("OPENCODE_GO_WORKSPACE_ID", "").strip()
-    if raw:
-        return raw
-
-    raw_url = os.environ.get("OPENCODE_GO_URL", "").strip()
-    match = re.search(r"/workspace/(wrk_[A-Z0-9]+)/go", raw_url)
-    if match:
-        return match.group(1)
-    return DEFAULT_WORKSPACE_ID
-
-
-@retry(RetryConfig(max_tries=3, backoff=1.0))
-def _validate_go_api_key() -> tuple[int, Optional[str]]:
-    key = _load_api_key()
-    if not key:
-        return 0, "OpenCode Go API key not found"
-
-    req = urllib.request.Request(
-        OPENCODE_GO_MODELS_URL,
+def _request_go_status(session: OAuthSession) -> Optional[dict]:
+    request = urllib.request.Request(
+        OPENCODE_GO_STATUS_URL,
         headers={
-            "Authorization": f"Bearer {key}",
+            "Authorization": f"Bearer {session.access_token}",
+            "x-org-id": session.org_id,
             "Accept": "application/json",
             "User-Agent": USER_AGENT,
         },
     )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        return 0, f"OpenCode Go API returned HTTP {exc.code}"
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
-        return 0, f"OpenCode Go API error: {exc}"
-
-    models = payload.get("data") if isinstance(payload, dict) else None
-    return (len(models) if isinstance(models, list) else 0), None
+    with urllib.request.build_opener(_NoRedirect()).open(request, timeout=15) as response:
+        raw = response.read(65_537)
+        if len(raw) > 65_536:
+            raise ValueError("OpenCode Console response too large")
+        payload = json.loads(raw)
+    if payload is not None and not isinstance(payload, dict):
+        raise ValueError("Invalid OpenCode Console response")
+    return payload
 
 
-@retry(RetryConfig(max_tries=2, backoff=1.0))
-def _dashboard_html(cookie: str, workspace_id: str) -> str:
-    cookie_header = cookie if "=" in cookie else f"auth={cookie}"
-    req = urllib.request.Request(
-        f"https://opencode.ai/workspace/{workspace_id}/go",
-        headers={
-            "User-Agent": USER_AGENT,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Cookie": cookie_header,
-        },
-    )
-    with urllib.request.urlopen(req, timeout=15) as response:
-        return response.read().decode("utf-8", "replace")
+def _microcents(value) -> int:
+    if isinstance(value, str) and re.fullmatch(r"[0-9]{1,20}", value):
+        return int(value)
+    if type(value) is int and 0 <= value <= 10**20:
+        return value
+    raise ValueError("Invalid OpenCode Go meter")
 
 
-def _strip_tags(value: str) -> str:
-    value = re.sub(r"<script\b[^>]*>.*?</script>", " ", value, flags=re.I | re.S)
-    value = re.sub(r"<style\b[^>]*>.*?</style>", " ", value, flags=re.I | re.S)
-    value = re.sub(r"<[^>]+>", " ", value)
-    value = html.unescape(value)
-    return re.sub(r"\s+", " ", value).strip()
-
-
-def _parse_window(text: str, names: tuple[str, ...]) -> tuple[Optional[int], str]:
-    for name in names:
-        match = re.search(rf"{re.escape(name)}(.{{0,240}}?)(\d{{1,3}})\s*%", text, flags=re.I)
-        if not match:
-            continue
-        percent = min(100, int(match.group(2)))
-        tail = text[match.end() : match.end() + 180]
-        reset = ""
-        reset_match = re.search(
-            r"(resets?\s+(?:in\s+)?.*?|reinicia\s+em\s+.*?)(?=\s+(?:Uso\s+Semanal|Uso\s+Mensal|Use\s+seu\s+saldo|Weekly|Monthly|©)|$)",
-            tail,
-            flags=re.I,
-        )
-        if reset_match:
-            reset = reset_match.group(0).strip()
-        return percent, reset
-    return None, ""
-
-
-def _scrape_usage(workspace_id: str) -> Optional[tuple[GoLimitWindow, ...]]:
-    cookie = _load_dashboard_cookie()
-    if not cookie:
-        return None
-
-    raw = _dashboard_html(cookie, workspace_id)
-    text = _strip_tags(raw)
-
+def _parse_status(payload: dict) -> tuple[str, tuple[GoLimitWindow, ...]]:
+    product = payload.get("product")
+    if product not in ("go", "go-plus"):
+        raise ValueError("Unknown OpenCode Go plan")
+    access = payload.get("access")
+    if not isinstance(access, dict) or not isinstance(access.get("meters"), dict):
+        raise ValueError("Invalid OpenCode Go meters")
     windows = []
-    specs = [
-        ("5 hour", 12, "$12 of usage every 5 hours", ("Rolling usage", "5 hour", "5-hour", "Uso Contínuo", "Uso Continuo")),
-        ("Weekly", 30, "$30 of usage per week", ("Weekly usage", "Weekly", "Uso Semanal")),
-        ("Monthly", 60, "$60 of usage per month", ("Monthly usage", "Monthly", "Uso Mensal")),
-    ]
-    found = False
-    for name, amount, description, labels in specs:
-        percent, reset = _parse_window(text, labels)
-        if percent is not None:
-            found = True
-        windows.append(GoLimitWindow(name, amount, description, percent, reset))
-    return tuple(windows) if found else None
-
-
-def _is_login_page(text: str) -> bool:
-    lower = text.lower()
-    return "sign in" in lower or "login" in lower or "entrar" in lower or "auth" in lower
+    for key, name in (("fiveHour", "5 hour"), ("week", "Weekly"), ("month", "Monthly")):
+        meter = access["meters"].get(key)
+        if not isinstance(meter, dict):
+            raise ValueError("Invalid OpenCode Go meter")
+        used = _microcents(meter.get("usedMicroCents"))
+        limit = _microcents(meter.get("limitMicroCents"))
+        if not limit:
+            raise ValueError("Invalid OpenCode Go limit")
+        reset = meter.get("resetsAt")
+        resets_at = None
+        if reset is not None:
+            if not isinstance(reset, str) or len(reset) > 64:
+                raise ValueError("Invalid OpenCode Go reset time")
+            resets_at = datetime.fromisoformat(reset.replace("Z", "+00:00"))
+            if resets_at.tzinfo is None:
+                raise ValueError("Invalid OpenCode Go reset time")
+            resets_at = resets_at.astimezone(timezone.utc)
+        elif key != "fiveHour":
+            raise ValueError("Invalid OpenCode Go reset time")
+        windows.append(
+            GoLimitWindow(
+                name=name,
+                amount_usd=limit / MICROCENTS_PER_DOLLAR,
+                description=name,
+                used_percent=max(0, min(100, int(round(100 * used / limit)))),
+                resets_at=resets_at,
+                used_usd=used / MICROCENTS_PER_DOLLAR,
+            )
+        )
+    plan = "OpenCode Go Plus" if product == "go-plus" else "OpenCode Go"
+    return plan, tuple(windows)
 
 
 def fetch_opencode_stats(days: int = 7) -> OpenCodeStats:
-    """Fetch OpenCode Go metadata, limits, and dashboard usage when available."""
+    """Fetch all three Go meters; no CLI keys or dashboard cookies are read."""
     del days
-
-    model_count, api_error = _validate_go_api_key()
-    workspace_id = _workspace_id()
-    stats = OpenCodeStats(model_count=model_count, workspace_id=workspace_id, error=api_error)
-
-    cookie = _load_dashboard_cookie()
-    if not cookie:
-        return stats
-
+    stats = OpenCodeStats()
     try:
-        raw = _dashboard_html(cookie, workspace_id)
-    except urllib.error.HTTPError as exc:
-        stats.error = stats.error or f"OpenCode dashboard returned HTTP {exc.code}"
-        return stats
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        stats.error = stats.error or f"OpenCode dashboard error: {exc}"
-        return stats
-
-    text = _strip_tags(raw)
-
-    if _is_login_page(text):
-        stats.cookie_expired = True
-        stats.error = stats.error or "OpenCode dashboard cookie expired"
-        return stats
-
-    scraped = []
-    specs = [
-        ("5 hour", 12, "$12 of usage every 5 hours", ("Rolling usage", "5 hour", "5-hour", "Uso Contínuo", "Uso Continuo")),
-        ("Weekly", 30, "$30 of usage per week", ("Weekly usage", "Weekly", "Uso Semanal")),
-        ("Monthly", 60, "$60 of usage per month", ("Monthly usage", "Monthly", "Uso Mensal")),
-    ]
-    found = False
-    for name, amount, description, labels in specs:
-        percent, reset = _parse_window(text, labels)
-        if percent is not None:
-            found = True
-        scraped.append(GoLimitWindow(name, amount, description, percent, reset))
-
-    if found:
-        stats.limits = tuple(scraped)
+        session = get_session()
+        stats.workspace_id = session.org_id
+        payload = _request_go_status(session)
+        if payload is None or (
+            payload.get("product") in ("go", "go-plus")
+            and "access" in payload and payload["access"] is None
+        ):
+            stats.error = "OpenCode Go has no active subscription in the selected workspace"
+            return stats
+        stats.plan, stats.limits = _parse_status(payload)
         stats.usage_available = True
+    except OAuthError as exc:
+        stats.error = str(exc)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            stats.error = "OpenCode Go session expired or revoked. Reconnect in Settings → Credentials"
+        elif exc.code == 403:
+            stats.error = "OpenCode Go access denied. Check the workspace selected during sign-in"
+        else:
+            stats.error = f"OpenCode Console returned HTTP {exc.code}"
+        exc.close()
+    except (urllib.error.URLError, TimeoutError, OSError):
+        stats.error = "OpenCode Console network error. Try refreshing later"
+    except (ValueError, TypeError, OverflowError):
+        stats.error = "OpenCode Console usage response is unavailable or incompatible"
     return stats
