@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import logging
 import subprocess
+import threading
 from pathlib import Path
 from typing import Callable, Optional
 
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
 
+from . import opencode_auth
 from .config import AppConfig, save_config
 from .providers import CATEGORY_LABELS, PROVIDER_SPECS
 
@@ -19,7 +21,7 @@ logger = logging.getLogger("codexbar-linux")
 
 DATA_DIR = Path.home() / ".local/share/codexbar-linux"
 CREDENTIAL_HINTS = [
-    ("OpenCode cookie", DATA_DIR / "opencode_auth_cookie"),
+    ("OpenCode Zen cookie (legacy)", DATA_DIR / "opencode_auth_cookie"),
     ("Kiro headers (legacy)", DATA_DIR / "kiro_headers.json"),
     ("Cursor cookie", DATA_DIR / "cursor_cookie"),
     ("GLM / z.ai API key", DATA_DIR / "zai_api_key"),
@@ -40,6 +42,8 @@ class SettingsDialog:
         self.on_saved = on_saved
         self.on_refresh = on_refresh
         self._provider_toggles: dict[str, Gtk.CheckButton] = {}
+        self._destroyed = False
+        self._opencode_attempt: Optional[threading.Event] = None
 
         self.dialog = Gtk.Dialog(
             title="QuotaLantern Settings",
@@ -67,6 +71,7 @@ class SettingsDialog:
         notebook.append_page(self._build_credentials_page(), Gtk.Label(label="Credentials"))
 
         self.dialog.connect("response", self._on_response)
+        self.dialog.connect("destroy", self._on_destroy)
         self.dialog.show_all()
 
     def _build_providers_page(self) -> Gtk.Widget:
@@ -197,6 +202,38 @@ class SettingsDialog:
         open_data.connect("clicked", lambda *_: self._open_path(DATA_DIR))
         box.pack_start(open_data, False, False, 0)
 
+        frame = Gtk.Frame(label="OpenCode Go")
+        oauth_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        oauth_box.set_border_width(8)
+        frame.add(oauth_box)
+        self._opencode_status = Gtk.Label(xalign=0)
+        oauth_box.pack_start(self._opencode_status, False, False, 0)
+        hint = Gtk.Label(
+            label="Sign in with OpenCode in your browser.\n"
+            "QuotaLantern stores its own OAuth session for Go.", xalign=0,
+        )
+        hint.set_line_wrap(True)
+        oauth_box.pack_start(hint, False, False, 0)
+        self._opencode_progress = Gtk.Label(xalign=0)
+        self._opencode_progress.set_line_wrap(True)
+        self._opencode_progress.set_selectable(True)
+        oauth_box.pack_start(self._opencode_progress, False, False, 0)
+        buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._opencode_sign_in = Gtk.Button(label="Sign in")
+        self._opencode_sign_in.connect("clicked", self._start_opencode_login)
+        buttons.pack_start(self._opencode_sign_in, False, False, 0)
+        self._opencode_cancel = Gtk.Button(label="Cancel sign-in")
+        self._opencode_cancel.set_sensitive(False)
+        self._opencode_cancel.connect("clicked", self._cancel_opencode_login)
+        buttons.pack_start(self._opencode_cancel, False, False, 0)
+        self._opencode_disconnect = Gtk.Button(label="Disconnect")
+        self._opencode_disconnect.set_tooltip_text("Remove only QuotaLantern's OpenCode session")
+        self._opencode_disconnect.connect("clicked", self._disconnect_opencode)
+        buttons.pack_start(self._opencode_disconnect, False, False, 0)
+        oauth_box.pack_start(buttons, False, False, 0)
+        box.pack_start(frame, False, False, 0)
+        self._update_opencode_status()
+
         for title, path in CREDENTIAL_HINTS:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             status = "exists" if path.exists() else "missing"
@@ -209,6 +246,105 @@ class SettingsDialog:
             box.pack_start(row, False, False, 0)
 
         return box
+
+    def _update_opencode_status(self) -> None:
+        try:
+            status = opencode_auth.login_status()
+        except Exception as exc:
+            logger.warning("OpenCode status failed (%s)", type(exc).__name__)
+            status = "reconnect_required"
+        labels = {
+            "connected": "Connected",
+            "disconnected": "Not connected",
+            "reconnect_required": "Reconnect required",
+        }
+        self._opencode_status.set_text(labels.get(status, "Reconnect required"))
+        self._opencode_sign_in.set_label("Sign in" if status == "disconnected" else "Reconnect")
+        self._opencode_disconnect.set_sensitive(status != "disconnected")
+
+    def _start_opencode_login(self, _button: Gtk.Button) -> None:
+        if self._destroyed or self._opencode_attempt is not None:
+            return
+        cancel = threading.Event()
+        self._opencode_attempt = cancel
+        self._opencode_sign_in.set_sensitive(False)
+        self._opencode_disconnect.set_sensitive(False)
+        self._opencode_cancel.set_sensitive(True)
+        self._opencode_progress.set_text("Starting sign-in…")
+        threading.Thread(target=self._run_opencode_login, args=(cancel,), daemon=True).start()
+
+    def _run_opencode_login(self, cancel: threading.Event) -> None:
+        error = None
+        success = False
+        try:
+            attempt = opencode_auth.begin_login()
+            if not cancel.is_set():
+                GLib.idle_add(self._show_opencode_code, cancel, attempt.user_code)
+                subprocess.Popen(
+                    ["xdg-open", attempt.verification_url],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+                opencode_auth.finish_login(attempt, cancel=cancel)
+                # A normal return means the session was durably saved, even
+                # if cancellation arrived while that final save was underway.
+                success = True
+        except opencode_auth.OAuthError as exc:
+            error = str(exc)
+        except Exception as exc:
+            logger.warning("OpenCode sign-in failed (%s)", type(exc).__name__)
+            error = "Could not sign in. Please try again."
+        GLib.idle_add(self._finish_opencode_login, cancel, success, error)
+
+    def _show_opencode_code(self, cancel: threading.Event, user_code: str) -> bool:
+        if not self._destroyed and self._opencode_attempt is cancel and not cancel.is_set():
+            self._opencode_progress.set_text(
+                f"Enter code {user_code} in the OpenCode browser page.\n"
+                "Waiting for authorization…"
+            )
+        return False
+
+    def _finish_opencode_login(
+        self, cancel: threading.Event, success: bool, error: Optional[str],
+    ) -> bool:
+        if self._destroyed or self._opencode_attempt is not cancel:
+            return False
+        self._opencode_attempt = None
+        self._opencode_cancel.set_sensitive(False)
+        self._opencode_sign_in.set_sensitive(True)
+        self._update_opencode_status()
+        self._opencode_progress.set_text(
+            "" if success else ("Sign-in cancelled." if cancel.is_set() else (error or ""))
+        )
+        if success and self.on_refresh:
+            self.on_refresh()
+        return False
+
+    def _cancel_opencode_login(self, _button: Gtk.Button) -> None:
+        if self._opencode_attempt is not None:
+            self._opencode_attempt.set()
+            self._opencode_cancel.set_sensitive(False)
+            self._opencode_progress.set_text("Cancelling sign-in…")
+
+    def _disconnect_opencode(self, _button: Gtk.Button) -> None:
+        if self._destroyed or self._opencode_attempt is not None:
+            return
+        try:
+            opencode_auth.disconnect()
+        except opencode_auth.OAuthError as exc:
+            self._opencode_progress.set_text(str(exc))
+        except Exception as exc:
+            logger.warning("OpenCode disconnect failed (%s)", type(exc).__name__)
+            self._opencode_progress.set_text("Could not disconnect. Please try again.")
+        else:
+            self._opencode_progress.set_text("")
+            self._update_opencode_status()
+            if self.on_refresh:
+                self.on_refresh()
+
+    def _on_destroy(self, _dialog: Gtk.Dialog) -> None:
+        self._destroyed = True
+        if self._opencode_attempt is not None:
+            self._opencode_attempt.set()
 
     @staticmethod
     def _open_path(path: Path) -> None:
