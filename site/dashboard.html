@@ -1,6 +1,154 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuotaLantern — Conceito do painel</title><link rel="icon" href="assets/facho-small-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)"><link rel="icon" href="assets/facho-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="stylesheet" href="style.css"><script src="ui.js" defer></script></head><body><a class="skip" href="#main" data-pt="Ir ao conteúdo" data-en="Skip to content">Ir ao conteúdo</a><div class="preview" data-pt="Conceito de UX · dados sintéticos · nenhuma conta ou instalação consultada" data-en="UX concept · synthetic data · no account or installation queried">Conceito de UX · dados sintéticos · nenhuma conta ou instalação consultada</div><div class="app-shell"><div class="app-window"><aside class="sidebar"><a class="brand" href="index.html"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-dark.svg"><img src="assets/facho-light.svg" alt="" width="32" height="32"></picture>QuotaLantern</a><a class="active" href="#main" data-pt="Visão geral" data-en="Overview">Visão geral</a><a href="#settings" data-pt="Preferências" data-en="Preferences">Preferências</a><a href="index.html#sources" data-pt="Fontes e limites" data-en="Sources & limits">Fontes e limites</a><small data-pt="Conceito para o desktop Linux.<br>A integração GTK real tem QA separado." data-en="Linux desktop concept.<br>Real GTK integration needs separate QA.">Conceito para o desktop Linux.<br>A integração GTK real tem QA separado.</small></aside><main class="workspace" id="main"><header class="app-header"><div><div class="eyebrow" data-pt="Disponibilidade, com contexto" data-en="Availability, with context">Disponibilidade, com contexto</div><h1 data-pt="Seu espaço de uso" data-en="Your usage workspace">Seu espaço de uso</h1><p data-pt="Cotas e gasto têm unidades diferentes." data-en="Quotas and spend have different units.">Cotas e gasto têm unidades diferentes.</p></div><div class="actions"><div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-lang="pt-BR" aria-pressed="true">PT</button><button type="button" data-lang="en" aria-pressed="false">EN</button></div><button type="button" data-demo-refresh data-pt="↻ Atualizar" data-en="↻ Refresh">↻ Atualizar</button></div></header><div class="notice-line" data-pt="A folga estimada só usa fontes recentes e qualificadas. Neste recorte: Codex OAuth." data-en="Headroom uses only fresh, qualified sources. In this scope: Codex OAuth.">A folga estimada só usa fontes recentes e qualificadas. Neste recorte: Codex OAuth.</div>
-<div class="provider-grid"><article class="provider-card"><div class="provider-head"><h3>Codex</h3><span class="chip ok" data-pt="✓ Recente" data-en="✓ Fresh">✓ Recente</span></div><div class="meter-label"><span data-pt="5 horas · uso" data-en="5 hours · used">5 horas · uso</span><strong>42%</strong></div><div class="track" role="meter" aria-label="Codex 5 horas / 5 hours" aria-valuemin="0" aria-valuemax="100" aria-valuenow="42"><div class="fill" style="width:42%"></div></div><div class="meter-label"><span data-pt="7 dias · uso" data-en="7 days · used">7 dias · uso</span><strong>71%</strong></div><div class="track" role="meter" aria-label="Codex 7 dias / 7 days" aria-valuemin="0" aria-valuemax="100" aria-valuenow="71"><div class="fill warn" style="width:71%"></div></div><p data-pt="Reset da janela de 5 h em 2 h 18 min" data-en="5 h window resets in 2 h 18 min">Reset da janela de 5 h em 2 h 18 min</p><div class="source" data-pt="OpenAI OAuth · exemplo há 2 min" data-en="OpenAI OAuth · example 2 min ago">OpenAI OAuth · exemplo há 2 min</div><div class="card-actions"><button type="button" data-demo-refresh data-provider="Codex" data-pt="Atualizar" data-en="Refresh">Atualizar</button><a href="https://chatgpt.com/codex/settings/usage" target="_blank" rel="noopener noreferrer" data-pt="Abrir fonte ↗" data-en="Open source ↗">Abrir fonte ↗</a></div></article>
-<article class="provider-card"><div class="provider-head"><h3>OpenAI API</h3><span class="chip" data-pt="Gasto" data-en="Spend">Gasto</span></div><p data-pt="Acumulado do mês" data-en="Month to date">Acumulado do mês</p><div class="cost">$12.50 <span>USD</span></div><p data-pt="Não representa saldo disponível ou cota." data-en="Does not represent available balance or quota.">Não representa saldo disponível ou cota.</p><div class="source" data-pt="Relatório administrativo · exemplo há 2 min" data-en="Admin cost report · example 2 min ago">Relatório administrativo · exemplo há 2 min</div><div class="card-actions"><button type="button" data-demo-refresh data-provider="OpenAI API" data-pt="Atualizar" data-en="Refresh">Atualizar</button><a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer" data-pt="Abrir fonte ↗" data-en="Open source ↗">Abrir fonte ↗</a></div></article>
-<article class="provider-card"><div class="provider-head"><h3>Grok</h3><span class="chip warn" data-pt="◷ Desatualizado" data-en="◷ Stale">◷ Desatualizado</span></div><div class="meter-label"><span data-pt="Último uso semanal conhecido" data-en="Last known weekly usage">Último uso semanal conhecido</span><strong>18%</strong></div><div class="track"><div class="fill" style="width:18%;background:var(--muted)"></div></div><p data-pt="Falha na atualização. Fora da recomendação." data-en="Refresh failed. Excluded from recommendations.">Falha na atualização. Fora da recomendação.</p><div class="source" data-pt="Grok Build · exemplo há 46 min · cache" data-en="Grok Build · example 46 min ago · cache">Grok Build · exemplo há 46 min · cache</div><div class="card-actions"><button type="button" data-demo-refresh data-provider="Grok" data-pt="Tentar atualizar" data-en="Try refresh">Tentar atualizar</button><a href="https://grok.com/" target="_blank" rel="noopener noreferrer" data-pt="Abrir fonte ↗" data-en="Open source ↗">Abrir fonte ↗</a></div></article>
-<article class="provider-card"><div class="provider-head"><h3>Gemini</h3><span class="chip" data-pt="? Desconhecido" data-en="? Unknown">? Desconhecido</span></div><div class="unknown" data-pt="Sem leitura válida" data-en="No valid reading">Sem leitura válida</div><p data-pt="Dado indisponível. Uso e folga não podem ser inferidos." data-en="Reading unavailable. Usage and headroom cannot be inferred.">Dado indisponível. Uso e folga não podem ser inferidos.</p><div class="source" data-pt="Fonte sem retorno válido · exemplo" data-en="No valid response from source · example">Fonte sem retorno válido · exemplo</div><div class="card-actions"><button type="button" data-demo-refresh data-provider="Gemini" data-pt="Tentar atualizar" data-en="Try refresh">Tentar atualizar</button><a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" data-pt="Abrir fonte ↗" data-en="Open source ↗">Abrir fonte ↗</a></div></article></div><p class="demo-status" role="status" aria-live="polite" id="demo-status"></p>
-<details class="settings" id="settings"><summary data-pt="Preferências de exemplo" data-en="Example preferences">Preferências de exemplo</summary><label><input type="checkbox" checked><span data-pt="Avisar quando uma cota se recuperar" data-en="Notify when an allowance recovers">Avisar quando uma cota se recuperar</span></label><label><input type="checkbox"><span data-pt="Incluir som nas notificações" data-en="Play a notification sound">Incluir som nas notificações</span></label><p class="small" data-pt="Controles locais do conceito. Não alteram a configuração instalada." data-en="Local concept controls. Installed configuration is not changed.">Controles locais do conceito. Não alteram a configuração instalada.</p></details><p class="app-bottom" data-pt="Ícone, launcher, tray e notificações fazem parte do candidato. Os exemplos não executam providers." data-en="Icon, launcher, tray and notifications belong to the candidate. Examples do not execute providers.">Ícone, launcher, tray e notificações fazem parte do candidato. Os exemplos não executam providers.</p></main></div><div class="icon-strip" aria-label="Proposta do ícone em tamanhos de painel"><figure><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-small-dark.svg"><img src="assets/facho-small-light.svg" alt="" width="16" height="16"></picture><figcaption>16 px</figcaption></figure><figure><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-small-dark.svg"><img src="assets/facho-small-light.svg" alt="" width="22" height="22"></picture><figcaption>22 px</figcaption></figure><figure><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-small-dark.svg"><img src="assets/facho-small-light.svg" alt="" width="24" height="24"></picture><figcaption>24 px</figcaption></figure><span data-pt="Facho aprovado · versões ópticas e simbólicas no pacote" data-en="Approved Facho · optical and symbolic versions in the package">Facho aprovado · versões ópticas e simbólicas no pacote</span></div></div></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuotaLantern · Tour do app</title>
+<meta name="description" content="As telas do QuotaLantern com dados inventados: menu da bandeja, configurações e janela Overview." data-pt-content="As telas do QuotaLantern com dados inventados: menu da bandeja, configurações e janela Overview." data-en-content="QuotaLantern’s screens with made-up data: tray menu, settings and the Overview window.">
+<meta name="theme-color" content="#f4f1e9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d2030" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="QuotaLantern">
+<meta property="og:description" content="QuotaLantern’s screens with made-up data: tray menu, settings and the Overview window.">
+<link rel="icon" href="assets/facho-small-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
+<link rel="icon" href="assets/facho-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="style.css">
+<script src="ui.js" defer></script>
+</head>
+<body data-pt-title="QuotaLantern · Tour do app" data-en-title="QuotaLantern · App tour">
+<a class="skip" href="#main" data-pt="Pular para o conteúdo" data-en="Skip to content">Pular para o conteúdo</a>
+<p id="live" class="sr-only" aria-live="polite"></p>
+<header class="top">
+  <div class="wrap">
+    <a class="mark-word" href="index.html"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-dark.svg"><img src="assets/facho-light.svg" alt="" width="26" height="26"></picture>QuotaLantern</a>
+    <nav aria-label="Seções" data-pt-aria="Seções" data-en-aria="Sections">
+      <a href="index.html#demo" data-pt="Demonstração" data-en="Demo">Demonstração</a><a href="index.html#estados" data-pt="Estados" data-en="States">Estados</a><a href="index.html#adaptadores" data-pt="Adaptadores" data-en="Adapters">Adaptadores</a><a href="index.html#instalar" data-pt="Instalar" data-en="Install">Instalar</a><a href="dashboard.html" aria-current="page">Tour</a><a href="https://github.com/caiolombello/quotalantern">GitHub ↗</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-lang="pt-BR" aria-pressed="true">PT</button><button type="button" data-lang="en" aria-pressed="false">EN</button></div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="page-head gridded">
+    <div class="wrap">
+      <p class="meta" data-pt="Tour do app · dados inventados" data-en="App tour · made-up data">Tour do app · dados inventados</p>
+      <h1 class="display" data-pt="Por dentro do <em>QuotaLantern</em>." data-en="Inside <em>QuotaLantern</em>.">Por dentro do <em>QuotaLantern</em>.</h1>
+      <p class="lede" data-pt="As telas do app: o menu da bandeja, as configurações e a janela Overview. Nada aqui consulta provedores, e o texto do app é em inglês, como no programa." data-en="The app’s screens: the tray menu, the settings and the Overview window. Nothing here queries a provider, and the app text is in English, as in the program.">As telas do app: o menu da bandeja, as configurações e a janela Overview. Nada aqui consulta provedores, e o texto do app é em inglês, como no programa.</p>
+    </div>
+  </section>
+
+  <section class="wrap sec" aria-labelledby="menu-title">
+    <div class="sec-label"><b>Fig. 3</b><span data-pt="Menu" data-en="Menu">Menu</span></div>
+    <div class="figure-row">
+      <figure>
+        <div class="plate">
+          <div class="panel" aria-hidden="true"><span class="glyph round"></span><span class="glyph"></span><span class="tray-ring" data-static-ring="96,critical"></span><span>14:32</span></div>
+          <ul class="menu-mock" aria-hidden="true">
+              <li class="dim">Claude Primary (5h): 96% used</li>
+              <li class="dim">Source: oauth · Updated: 1m ago · Reported usage — recent</li>
+              <li class="dim">Ring: one reported window; largest consumed fraction, not total quota.</li>
+              <li class="dim">Unconfirmed: Grok: stale</li>
+              <li class="dim">Next reset: Codex Session — resets in 2h  ·  Last check 1m ago</li>
+              <li class="sep"></li>
+              <li class="on">Open Overview…</li>
+              <li>Refresh Now</li>
+              <li class="sep"></li>
+              <li class="dim">At the limit · 1</li>
+              <li><span>🔴  Claude  96%  <span class="blk">███████░</span></span><span>▸</span></li>
+              <li class="dim">Active · 2</li>
+              <li><span>🟢  Codex  71%  <span class="blk">█████░░░</span></span><span>▸</span></li>
+              <li><span>⚪  Grok  18%  <span class="blk">█░░░░░░░</span>  · ◷ Stale</span><span>▸</span></li>
+              <li class="sep"></li>
+              <li>Settings…</li>
+              <li>Open Logs</li>
+              <li>About QuotaLantern</li>
+              <li class="sep"></li>
+              <li>Quit QuotaLantern</li>
+            </ul>
+        </div>
+        <figcaption class="caption plate-cap" data-pt="Fig. 3 · Menu da bandeja." data-en="Fig. 3 · Tray menu.">Fig. 3 · Menu da bandeja.</figcaption>
+      </figure>
+      <div class="copy-col">
+        <h2 class="display" id="menu-title" data-pt="O menu começa pelo anel." data-en="The menu starts with the ring.">O menu começa pelo anel.</h2>
+        <p data-pt="As primeiras linhas explicam o que o ícone mostra: qual janela, de onde veio o dado, quando foi lido e o que ficou sem confirmação." data-en="The first lines explain what the icon shows: which window, where the data came from, when it was read and what is unconfirmed.">As primeiras linhas explicam o que o ícone mostra: qual janela, de onde veio o dado, quando foi lido e o que ficou sem confirmação.</p>
+        <ol class="points">
+            <li data-pt="Cor só para leituras confirmadas. O Grok, com leitura antiga, aparece em cinza." data-en="Color only for confirmed readings. Grok, with a stale reading, shows in grey.">Cor só para leituras confirmadas. O Grok, com leitura antiga, aparece em cinza.</li>
+            <li data-pt="Cada provedor abre um submenu com as janelas, o reset, a conta e a origem do dado." data-en="Each provider opens a submenu with its windows, reset, account and data source.">Cada provedor abre um submenu com as janelas, o reset, a conta e a origem do dado.</li>
+            <li data-pt="Abrir a Overview e atualizar ficam no primeiro nível, sem submenu." data-en="Opening the Overview and refreshing sit at the top level, no submenu.">Abrir a Overview e atualizar ficam no primeiro nível, sem submenu.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec" aria-labelledby="settings-title">
+    <div class="sec-label"><b>Fig. 4</b>Settings</div>
+    <div class="figure-row">
+      <figure>
+        <div class="plate"><div class="settings-mock" aria-hidden="true">
+              <nav><span class="on">Providers</span><span>Display</span><span>Alerts</span><span>Credentials</span></nav>
+              <div class="pane">
+                <h4>Providers</h4>
+                <span class="count">3 of 12 enabled</span>
+                <div class="grp">SUBSCRIPTION / PLAN LIMITS</div>
+                <div class="rows">
+                  <div class="row"><div>Codex<small>Needs ~/.codex/auth.json (Codex CLI login)</small></div><span class="switch on"></span></div>
+                  <div class="row"><div>Claude<small>Optional — run claude auth login, or disable in Settings</small></div><span class="switch on"></span></div>
+                  <div class="row"><div>Gemini<small>Sign in via Antigravity CLI (agy) or ~/.gemini/oauth_creds.json</small></div><span class="switch"></span></div>
+                  <div class="row"><div>OpenCode Go<small>Sign in to OpenCode Go in Settings → Credentials (OAuth)</small></div><span class="switch on"></span></div>
+                </div>
+                <div class="grp">API COST / ORG BILLING</div>
+                <div class="rows">
+                  <div class="row"><div>OpenAI API<small>Set OpenAI admin key file</small></div><span class="switch"></span></div>
+                </div>
+              </div>
+            </div></div>
+        <figcaption class="caption plate-cap" data-pt="Fig. 4 · Settings, página Providers." data-en="Fig. 4 · Settings, Providers page.">Fig. 4 · Settings, página Providers.</figcaption>
+      </figure>
+      <div class="copy-col">
+        <h2 class="display" id="settings-title" data-pt="Cada opção diz o que faz." data-en="Every option says what it does.">Cada opção diz o que faz.</h2>
+        <p data-pt="Quatro páginas, Providers, Display, Alerts e Credentials, com uma linha de explicação embaixo de cada controle." data-en="Four pages, Providers, Display, Alerts and Credentials, with a line of explanation under every control.">Quatro páginas, Providers, Display, Alerts e Credentials, com uma linha de explicação embaixo de cada controle.</p>
+        <ol class="points">
+            <li data-pt="Um interruptor por provedor, separados entre limite de plano e custo de API." data-en="One switch per provider, split between plan limits and API cost.">Um interruptor por provedor, separados entre limite de plano e custo de API.</li>
+            <li data-pt="Os níveis de alerta são conferidos: o aviso precisa ficar abaixo do crítico para salvar." data-en="Alert levels are checked: warning must stay below critical before you can save.">Os níveis de alerta são conferidos: o aviso precisa ficar abaixo do crítico para salvar.</li>
+            <li data-pt="Arquivos de credencial mostram só se existem e qual a permissão. O conteúdo nunca aparece." data-en="Credential files only show whether they exist and their permissions. Contents never appear.">Arquivos de credencial mostram só se existem e qual a permissão. O conteúdo nunca aparece.</li>
+            <li data-pt="O login do OpenCode Go acontece no navegador, com código e opção de cancelar." data-en="OpenCode Go sign-in happens in the browser, with a code and a way to cancel.">O login do OpenCode Go acontece no navegador, com código e opção de cancelar.</li>
+            <li data-pt="Anúncios de reset globais, vindos do codex-resets.com, são opcionais e ficam desligados por padrão." data-en="Global reset announcements from codex-resets.com are optional and off by default.">Anúncios de reset globais, vindos do codex-resets.com, são opcionais e ficam desligados por padrão.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec" aria-labelledby="captures-title">
+    <div class="sec-label"><b>Fig. 5–6</b><span data-pt="Capturas" data-en="Captures">Capturas</span></div>
+    <div>
+      <div class="sec-head">
+        <h2 class="display" id="captures-title" data-pt="A interface de verdade." data-en="The actual interface.">A interface de verdade.</h2>
+        <p data-pt="Renderizadas fora da tela a partir do código deste repositório, com dados inventados e sem consultar provedores. Fonte e tema seguem o desktop. Na Overview, <kbd>F5</kbd> ou <kbd>Ctrl</kbd>+<kbd>R</kbd> atualizam e <kbd>Esc</kbd> fecha." data-en="Rendered offscreen from this repository’s code, with made-up data and no provider queries. Font and theme follow the desktop. In the Overview, <kbd>F5</kbd> or <kbd>Ctrl</kbd>+<kbd>R</kbd> refresh and <kbd>Esc</kbd> closes.">Renderizadas fora da tela a partir do código deste repositório, com dados inventados e sem consultar provedores. Fonte e tema seguem o desktop. Na Overview, <kbd>F5</kbd> ou <kbd>Ctrl</kbd>+<kbd>R</kbd> atualizam e <kbd>Esc</kbd> fecha.</p>
+      </div>
+      <div class="captures">
+        <figure>
+          <img src="assets/screens/overview-dark.png" width="560" height="1180" loading="lazy" alt="Janela Overview no tema escuro: Claude a 93%, Codex a 71%, Grok com leitura antiga, gasto da OpenAI API e um erro do Gemini." data-pt-alt="Janela Overview no tema escuro: Claude a 93%, Codex a 71%, Grok com leitura antiga, gasto da OpenAI API e um erro do Gemini." data-en-alt="Overview window in the dark theme: Claude at 93%, Codex at 71%, Grok with a stale reading, OpenAI API spend and a Gemini error.">
+          <figcaption class="caption" data-pt="Fig. 5 · Overview, tema escuro." data-en="Fig. 5 · Overview, dark theme.">Fig. 5 · Overview, tema escuro.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/screens/settings-light.png" width="760" height="640" loading="lazy" alt="Página Providers das configurações no tema claro, com um interruptor por provedor." data-pt-alt="Página Providers das configurações no tema claro, com um interruptor por provedor." data-en-alt="Settings Providers page in the light theme, with one switch per provider.">
+          <figcaption class="caption" data-pt="Fig. 6 · Settings → Providers, tema claro." data-en="Fig. 6 · Settings → Providers, light theme.">Fig. 6 · Settings → Providers, tema claro.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <p data-pt="QuotaLantern é um projeto independente sob licença MIT, inspirado no CodexBar de Peter Steinberger." data-en="QuotaLantern is an independent MIT-licensed project, inspired by Peter Steinberger’s CodexBar.">QuotaLantern é um projeto independente sob licença MIT, inspirado no CodexBar de Peter Steinberger.</p>
+    <nav aria-label="Rodapé" data-pt-aria="Rodapé" data-en-aria="Footer">
+      <a href="dashboard.html" data-pt="Tour do app" data-en="App tour">Tour do app</a>
+      <a href="icons.html" data-pt="Ícones" data-en="Icons">Ícones</a>
+      <a href="https://github.com/caiolombello/quotalantern/releases">Releases ↗</a>
+      <a href="https://github.com/caiolombello/quotalantern/blob/main/CHANGELOG.md">Changelog ↗</a>
+      <a href="https://github.com/caiolombello/quotalantern/blob/main/NOTICE">NOTICE ↗</a>
+      <a href="https://github.com/caiolombello/quotalantern/blob/main/ORIGIN.md" data-pt="Origem ↗" data-en="Origin ↗">Origem ↗</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>
