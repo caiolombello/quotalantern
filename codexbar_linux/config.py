@@ -58,6 +58,7 @@ class AppConfig:
     open_dashboard_on_start: bool = False
     # Third-party global reset announcements (codex-resets.com); opt-in.
     codex_resets_enabled: bool = False
+    codex_resets_hint_alerts: bool = True  # AI-forecast hints also notify
     open_urls: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_OPEN_URLS))
 
     def is_enabled(self, provider_id: str) -> bool:
@@ -130,6 +131,8 @@ def load_config() -> AppConfig:
         cfg.open_dashboard_on_start = data["open_dashboard_on_start"]
     if isinstance(data.get("codex_resets_enabled"), bool):
         cfg.codex_resets_enabled = data["codex_resets_enabled"]
+    if isinstance(data.get("codex_resets_hint_alerts"), bool):
+        cfg.codex_resets_hint_alerts = data["codex_resets_hint_alerts"]
 
     if isinstance(data.get("open_urls"), dict):
         for key, value in data["open_urls"].items():
@@ -154,6 +157,7 @@ def save_config(cfg: AppConfig) -> None:
         "label_mode": cfg.label_mode,
         "open_dashboard_on_start": cfg.open_dashboard_on_start,
         "codex_resets_enabled": cfg.codex_resets_enabled,
+        "codex_resets_hint_alerts": cfg.codex_resets_hint_alerts,
         "open_urls": dict(cfg.open_urls),
     }
     text = json.dumps(payload, indent=2, sort_keys=True) + "\n"

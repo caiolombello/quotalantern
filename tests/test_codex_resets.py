@@ -204,9 +204,52 @@ class AnnouncementTests(unittest.TestCase):
         notes, seen = cr.new_announcements(seen, self.status("102", "banked"))
         self.assertEqual([title for title, _ in notes], ["Banked Codex reset granted"])
         notes, seen = cr.new_announcements(seen, self.status("102", "banked", scheduled_id="300"))
-        self.assertEqual([title for title, _ in notes], ["Codex reset scheduled"])
+        self.assertEqual([title for title, _ in notes], ["Banked Codex reset announced"])
+        self.assertIn("you apply it when you choose", notes[0][1])
+        notes, seen = cr.new_announcements(seen, self.status("102", "regular", scheduled_id="301"))
+        self.assertEqual([title for title, _ in notes], ["Codex reset announced"])
         self.assertTrue(all("codex-resets.com" in body for _, body in notes))
         notes, _ = cr.new_announcements(seen, None)
+        self.assertEqual(notes, [])
+
+    def watch(self, level="elevated", observed="2026-10-07T10:00:00Z", expires="2026-10-08T10:00:00Z", chance=40):
+        return {"level": level, "reset_chance_percent": chance, "forecast_window": "next 24–48h",
+                "observed_at": observed, "expires_at": expires, "text": "Hint", "source": {"type": "observed"}}
+
+    def with_watch(self, watch, scheduled_id=None):
+        scheduled = None
+        if scheduled_id is not None:
+            scheduled = {**PAYLOAD["data"]["latest_reset"], "id": scheduled_id, "status": "scheduled", "scheduled_for": None}
+        return cr.parse_status(payload(scheduled_reset=scheduled, active_watch=watch))
+
+    def test_pending_announcements_are_reported_even_on_the_first_check(self):
+        notes, seen = cr.new_announcements({}, self.with_watch(self.watch(), scheduled_id="300"), now=NOW)
+        self.assertEqual([title for title, _ in notes], ["Codex reset announced", "Codex reset may be coming"])
+        self.assertIn("a time not given yet", notes[0][1])
+        self.assertIn("Elevated signal, 40% chance, next 24–48h", notes[1][1])
+        self.assertIn("not confirmed by OpenAI", notes[1][1])
+        notes, _ = cr.new_announcements(seen, self.with_watch(self.watch(), scheduled_id="300"), now=NOW)
+        self.assertEqual(notes, [])
+
+    def test_hints_notify_when_new_or_stronger_and_respect_expiry_and_opt_out(self):
+        _, seen = cr.new_announcements({}, self.status(), now=NOW)
+        notes, seen = cr.new_announcements(seen, self.with_watch(self.watch()), now=NOW)
+        self.assertEqual([t for t, _ in notes], ["Codex reset may be coming"])
+        notes, seen = cr.new_announcements(seen, self.with_watch(self.watch(chance=55)), now=NOW)
+        self.assertEqual(notes, [])
+        notes, seen = cr.new_announcements(seen, self.with_watch(self.watch("strong", chance=80)), now=NOW)
+        self.assertEqual([t for t, _ in notes], ["Codex reset signal got stronger"])
+        notes, seen = cr.new_announcements(seen, self.with_watch(self.watch("strong", chance=None)), now=NOW)
+        self.assertEqual(notes, [])
+        later = self.watch(observed="2026-10-07T11:30:00Z", chance=None)
+        notes, seen = cr.new_announcements(seen, self.with_watch(later), now=NOW)
+        self.assertEqual([t for t, _ in notes], ["Codex reset may be coming"])
+        self.assertIn("Elevated signal, next 24–48h", notes[0][1])
+        expired = self.watch(observed="2026-10-07T11:45:00Z", expires="2026-10-07T11:50:00Z")
+        notes, seen = cr.new_announcements(seen, self.with_watch(expired), now=NOW)
+        self.assertEqual(notes, [])
+        fresh = self.watch(observed="2026-10-07T11:55:00Z")
+        notes, _ = cr.new_announcements(seen, self.with_watch(fresh), now=NOW, hints=False)
         self.assertEqual(notes, [])
 
 
@@ -241,14 +284,16 @@ class ViewTests(unittest.TestCase):
 class ConfigTests(unittest.TestCase):
     def test_announcements_are_opt_in_and_persisted(self):
         self.assertFalse(config.AppConfig().codex_resets_enabled)
+        self.assertTrue(config.AppConfig().codex_resets_hint_alerts)
         with tempfile.TemporaryDirectory() as temporary:
             config_dir = Path(temporary) / "config"
             with (
                 mock.patch.object(config, "CONFIG_DIR", config_dir),
                 mock.patch.object(config, "CONFIG_PATH", config_dir / "config.json"),
             ):
-                config.save_config(config.AppConfig(codex_resets_enabled=True))
+                config.save_config(config.AppConfig(codex_resets_enabled=True, codex_resets_hint_alerts=False))
                 self.assertTrue(config.load_config().codex_resets_enabled)
+                self.assertFalse(config.load_config().codex_resets_hint_alerts)
                 (config_dir / "config.json").write_text('{"codex_resets_enabled": "yes"}')
                 self.assertFalse(config.load_config().codex_resets_enabled)
 

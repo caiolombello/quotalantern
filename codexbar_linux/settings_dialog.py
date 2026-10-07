@@ -11,7 +11,7 @@ from typing import Callable, Optional
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk
+from gi.repository import GLib, GObject, Gtk
 
 from . import gtk_style
 from . import opencode_auth
@@ -191,6 +191,17 @@ class SettingsDialog:
             "15 minutes. Third-party data, not affiliated with OpenAI; no account data is sent. "
             "Shown apart from your own quota, never in the ring.",
             self.codex_resets,
+        )
+        self.codex_resets_hints = Gtk.Switch()
+        self.codex_resets_hints.set_active(self.config.codex_resets_hint_alerts)
+        self._row(
+            listbox, "Alert on reset hints",
+            "Also notify when codex-resets.com spots signs that a reset may come. These are AI "
+            "forecasts and can be wrong. Announced and confirmed resets always notify.",
+            self.codex_resets_hints,
+        )
+        self.codex_resets.bind_property(
+            "active", self.codex_resets_hints, "sensitive", GObject.BindingFlags.SYNC_CREATE
         )
 
         listbox = self._group(box, "Endpoints")
@@ -512,6 +523,7 @@ class SettingsDialog:
             label_mode=self.label_mode.get_active_id() or "bottleneck",
             open_dashboard_on_start=self.open_dash.get_active(),
             codex_resets_enabled=self.codex_resets.get_active(),
+            codex_resets_hint_alerts=self.codex_resets_hints.get_active(),
             open_urls=dict(self.config.open_urls),
         )
 

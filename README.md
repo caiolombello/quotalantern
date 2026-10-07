@@ -73,8 +73,10 @@ minutes, revalidating with ETag and backing off on `Retry-After`. No account
 data or credentials are sent. These are global resets announced for all paid
 Codex plans, classified by that third-party site from @thsottiaux's posts and
 not affiliated with OpenAI. They get their own Overview card and menu item with
-a credit link, notify once per new reset, and never feed the tray ring or any
-quota.
+a credit link and never feed the tray ring or any quota. Each confirmed or
+announced (scheduled, not yet confirmed) reset notifies once, including one
+already pending when you turn the feature on. Hints that a reset may come are
+AI forecasts; they also notify unless you turn off **Alert on reset hints**.
 
 ## Offline validation
 
