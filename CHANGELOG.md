@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.0-alpha.4
 
 - Codex Resets: announced resets that are not confirmed yet, and hints that
   a reset may come (AI forecasts, labeled as such), now notify. A pending
