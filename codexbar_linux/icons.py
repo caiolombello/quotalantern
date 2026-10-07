@@ -31,6 +31,8 @@ def gauge_svg(pct=None, state="unknown", theme="dark", style="facho"):
         center = f'<path d="{center}" fill="none" stroke="{muted}" stroke-width="3" stroke-linecap="round"/>'
     elif style == "circle":
         center = f'<circle cx="16" cy="16" r="5" fill="{accent}"/>'
+    elif style == "plain":
+        center = ""  # the overview window prints the percentage inside
     else:
         center = f'<g transform="translate(7.68 7.68) scale(.52)" fill="{fg}"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g>'
     return f'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><title>{state}: {pct if known else "quota unconfirmed"}</title>{ring}{center}</svg>'

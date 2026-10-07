@@ -3,10 +3,11 @@
 AI usage, quotas, resets and costs in your Linux desktop tray. Python + GTK 3,
 Ayatana AppIndicator and libnotify. Independent project with A/Facho identity.
 
-**v0.1.0-alpha.2 — proportional tray source preview.** Native integration was exercised on
-KDE Plasma/Wayland: GTK window mapped, SVG loaded, tray registered and test
-notification accepted. Pixel-level native visual review, GNOME and high-DPI
-coverage remain pending. Web screenshots/concepts use synthetic data.
+**v0.1.0-alpha.3 — redesigned interface and optional Codex reset announcements.**
+Installed and run on KDE Plasma/Wayland: tray item registered, offline check
+ready and no runtime errors. GTK windows were reviewed through offscreen renders
+with synthetic data; pixel-level native review, GNOME and high-DPI coverage
+remain pending. Web examples use synthetic data.
 
 - [PT/EN website](https://caiolombello.github.io/quotalantern/)
 - [Releases](https://github.com/caiolombello/quotalantern/releases)
@@ -65,6 +66,16 @@ removes only QuotaLantern's session. Go meters come from the Console's current
 JSON endpoint, which is not yet a documented public API. The Zen adapter retains
 its separate legacy cookie behavior.
 
+Codex reset announcements are optional: **Settings → Providers → Announcements**,
+off by default. When enabled, QuotaLantern reads the free public API of
+[Codex Resets](https://codex-resets.com) (`/api/v1/status`) at most every 15
+minutes, revalidating with ETag and backing off on `Retry-After`. No account
+data or credentials are sent. These are global resets announced for all paid
+Codex plans, classified by that third-party site from @thsottiaux's posts and
+not affiliated with OpenAI. They get their own Overview card and menu item with
+a credit link, notify once per new reset, and never feed the tray ring or any
+quota.
+
 ## Offline validation
 
 ```sh
@@ -72,7 +83,7 @@ python3 run_offline.py
 python3 scripts/check_public.py
 ```
 
-72 synthetic offline tests passed in the release snapshot. Tests block network,
+128 synthetic offline tests passed in the release snapshot. Tests block network,
 subprocesses and real user files and use a temporary HOME. This verifies the
 covered cases, not every provider response or every Linux desktop. CI repeats
 these checks on Python 3.12 and 3.14.

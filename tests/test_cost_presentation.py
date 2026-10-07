@@ -52,16 +52,23 @@ class Widget:
     def labels(self):
         return [self.label] + [label for child in self.children for label in child.labels()]
 
+    def __getattr__(self, name):
+        # Layout-only setters (alignment, expansion) do not affect labels.
+        if name.startswith("set_"):
+            return lambda *args, **kwargs: None
+        raise AttributeError(name)
+
 
 class CostPresentationTests(unittest.TestCase):
     def build(self, usage):
-        gtk = types.SimpleNamespace(**{name: Widget for name in ("Frame", "Box", "Label", "Button", "Menu", "MenuItem")},
-            Orientation=types.SimpleNamespace(VERTICAL=1, HORIZONTAL=0))
+        gtk = types.SimpleNamespace(**{name: Widget for name in ("Frame", "Box", "Label", "Button", "Menu", "MenuItem", "ProgressBar")},
+            Orientation=types.SimpleNamespace(VERTICAL=1, HORIZONTAL=0),
+            Align=types.SimpleNamespace(START=1, CENTER=3, END=2))
         gi = types.ModuleType("gi")
         gi.require_version = lambda *args: None
         repo = types.ModuleType("gi.repository")
         repo.Gtk = gtk
-        repo.Gdk = repo.GLib = repo.AyatanaAppIndicator3 = types.SimpleNamespace()
+        repo.Gdk = repo.GdkPixbuf = repo.Gio = repo.GLib = repo.AyatanaAppIndicator3 = types.SimpleNamespace()
         repo.Pango = types.SimpleNamespace(EllipsizeMode=types.SimpleNamespace(END=0))
         gi.repository = repo
         with mock.patch.dict(sys.modules, {"gi": gi, "gi.repository": repo}):

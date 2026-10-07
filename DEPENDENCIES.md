@@ -15,6 +15,7 @@ Install system components through your distribution's official packages.
 | Bash / util-linux flock | Local launcher and instance locking; system packages with their own GPL/component notices |
 | libcanberra, kreadconfig, gsettings, busctl, xdg-open | Optional system sound/theme/desktop helpers; package licenses remain applicable |
 | CodexBar CLI | Legacy helper retained in source, not in the active native provider registry; upstream MIT, Peter Steinberger |
+| Codex Resets (codex-resets.com) | Optional third-party public API for global Codex reset announcements; free, no key, the site asks for a credit link where its data is shown. Off by default; not affiliated with OpenAI |
 | Provider CLIs and services | Not redistributed. Their terms, authentication policy and account access rules remain separate from MIT |
 
 Adapter code is present for Codex, Claude, Gemini, Kiro, Grok, Cursor, GLM,

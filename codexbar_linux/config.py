@@ -56,6 +56,8 @@ class AppConfig:
     hide_offline: bool = False
     label_mode: str = "bottleneck"  # bottleneck | recommend
     open_dashboard_on_start: bool = False
+    # Third-party global reset announcements (codex-resets.com); opt-in.
+    codex_resets_enabled: bool = False
     open_urls: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_OPEN_URLS))
 
     def is_enabled(self, provider_id: str) -> bool:
@@ -126,6 +128,8 @@ def load_config() -> AppConfig:
         cfg.label_mode = label_mode
     if isinstance(data.get("open_dashboard_on_start"), bool):
         cfg.open_dashboard_on_start = data["open_dashboard_on_start"]
+    if isinstance(data.get("codex_resets_enabled"), bool):
+        cfg.codex_resets_enabled = data["codex_resets_enabled"]
 
     if isinstance(data.get("open_urls"), dict):
         for key, value in data["open_urls"].items():
@@ -149,6 +153,7 @@ def save_config(cfg: AppConfig) -> None:
         "hide_offline": cfg.hide_offline,
         "label_mode": cfg.label_mode,
         "open_dashboard_on_start": cfg.open_dashboard_on_start,
+        "codex_resets_enabled": cfg.codex_resets_enabled,
         "open_urls": dict(cfg.open_urls),
     }
     text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
