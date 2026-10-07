@@ -128,7 +128,9 @@ class CodexBarLinuxApp:
         if not self.config.codex_resets_enabled or not self._reset_feed.refresh():
             return
         snapshot = self._reset_feed.snapshot()
-        notes, seen = new_announcements(self._state.get("codex_resets", {}), snapshot.status)
+        notes, seen = new_announcements(
+            self._state.get("codex_resets", {}), snapshot.status, hints=self.config.codex_resets_hint_alerts
+        )
         self._state["codex_resets"] = seen
         for title, body in notes:
             self._notify(title, body, sound="message")

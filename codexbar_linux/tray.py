@@ -372,7 +372,7 @@ class TrayApp:
     def _show_about(self) -> None:
         dialog = Gtk.AboutDialog()
         dialog.set_program_name(APP_NAME)
-        dialog.set_version("0.1.0-alpha.3")
+        dialog.set_version("0.1.0-alpha.4")
         dialog.set_comments(
             "AI usage, quotas, resets and costs in your Linux tray.\n"
             "Every reading shows its source and age; unknown is never zero."

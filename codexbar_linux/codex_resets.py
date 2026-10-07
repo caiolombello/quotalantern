@@ -280,20 +280,36 @@ class ResetFeed:
 
 # ── announcements → notifications ─────────────────────────────────────────
 
-def new_announcements(seen: dict, status: Optional[ResetStatus]) -> tuple[list[tuple[str, str]], dict]:
-    """Compare with ids already seen. The first observation is recorded silently."""
+WATCH_RANK = {"elevated": 1, "strong": 2}
+
+
+def new_announcements(
+    seen: dict,
+    status: Optional[ResetStatus],
+    now: Optional[datetime] = None,
+    hints: bool = True,
+) -> tuple[list[tuple[str, str]], dict]:
+    """Compare with what was already announced; each item notifies once.
+
+    A past reset found on the very first check stays silent (old news). A
+    pending scheduled reset or a live hint is reported even then, because it
+    is still ahead. Hints are AI-classified forecasts and are labeled so.
+    """
     seen = seen if isinstance(seen, dict) else {}
     record = {
         "initialized": bool(seen.get("initialized")),
         "reset_id": seen.get("reset_id"),
         "scheduled_id": seen.get("scheduled_id"),
+        "watch_key": seen.get("watch_key"),
+        "watch_level": seen.get("watch_level"),
     }
     if status is None:
         return [], record
+    now = now or datetime.now(timezone.utc)
     first = not record["initialized"]
     record["initialized"] = True
     notes: list[tuple[str, str]] = []
-    latest, scheduled = status.latest, status.scheduled
+    latest, scheduled, watch = status.latest, status.scheduled, status.watch
     if latest is not None and latest.id != record["reset_id"]:
         record["reset_id"] = latest.id
         if not first:
@@ -305,8 +321,24 @@ def new_announcements(seen: dict, status: Optional[ResetStatus]) -> tuple[list[t
                               "A reset for paid plans was announced. Data: codex-resets.com"))
     if scheduled is not None and scheduled.id != record["scheduled_id"]:
         record["scheduled_id"] = scheduled.id
-        if not first:
-            when = scheduled.scheduled_for.astimezone().strftime("%a %H:%M") if scheduled.scheduled_for else "a time not given yet"
-            notes.append(("Codex reset scheduled",
-                          f"Announced for {when}; not confirmed until it happens. Data: codex-resets.com"))
+        when = scheduled.scheduled_for.astimezone().strftime("%a %H:%M") if scheduled.scheduled_for else "a time not given yet"
+        if scheduled.reset_type == "banked":
+            notes.append(("Banked Codex reset announced",
+                          f"A reset credit for paid plans is due {when}; you apply it when you choose. "
+                          "Not confirmed until it arrives. Data: codex-resets.com"))
+        else:
+            notes.append(("Codex reset announced",
+                          f"Scheduled for {when}; not confirmed until it happens. Data: codex-resets.com"))
+    if hints and watch is not None and watch.expires_at > now:
+        key = watch.observed_at.isoformat()
+        new_hint = key != record["watch_key"]
+        stronger = WATCH_RANK[watch.level] > WATCH_RANK.get(record["watch_level"], 0)
+        if new_hint or stronger:
+            chance = f", {watch.chance_percent}% chance" if watch.chance_percent is not None else ""
+            notes.append((
+                "Codex reset may be coming" if new_hint else "Codex reset signal got stronger",
+                f"{watch.level.capitalize()} signal{chance}, {watch.window}. "
+                "AI forecast from codex-resets.com, not confirmed by OpenAI.",
+            ))
+        record["watch_key"], record["watch_level"] = key, watch.level
     return notes, record

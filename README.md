@@ -3,7 +3,7 @@
 AI usage, quotas, resets and costs in your Linux desktop tray. Python + GTK 3,
 Ayatana AppIndicator and libnotify. Independent project with A/Facho identity.
 
-**v0.1.0-alpha.3 — redesigned interface and optional Codex reset announcements.**
+**v0.1.0-alpha.4 — alerts for announced Codex resets and reset hints.**
 Installed and run on KDE Plasma/Wayland: tray item registered, offline check
 ready and no runtime errors. GTK windows were reviewed through offscreen renders
 with synthetic data; pixel-level native review, GNOME and high-DPI coverage
@@ -73,8 +73,10 @@ minutes, revalidating with ETag and backing off on `Retry-After`. No account
 data or credentials are sent. These are global resets announced for all paid
 Codex plans, classified by that third-party site from @thsottiaux's posts and
 not affiliated with OpenAI. They get their own Overview card and menu item with
-a credit link, notify once per new reset, and never feed the tray ring or any
-quota.
+a credit link and never feed the tray ring or any quota. Each confirmed or
+announced (scheduled, not yet confirmed) reset notifies once, including one
+already pending when you turn the feature on. Hints that a reset may come are
+AI forecasts; they also notify unless you turn off **Alert on reset hints**.
 
 ## Offline validation
 
@@ -83,7 +85,7 @@ python3 run_offline.py
 python3 scripts/check_public.py
 ```
 
-128 synthetic offline tests passed in the release snapshot. Tests block network,
+130 synthetic offline tests passed in the release snapshot. Tests block network,
 subprocesses and real user files and use a temporary HOME. This verifies the
 covered cases, not every provider response or every Linux desktop. CI repeats
 these checks on Python 3.12 and 3.14.

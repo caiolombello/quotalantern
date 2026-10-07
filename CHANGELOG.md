@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.0-alpha.4
+
+- Codex Resets: announced resets that are not confirmed yet, and hints that
+  a reset may come (AI forecasts, labeled as such), now notify. A pending
+  announcement or live hint found on the first check is reported instead of
+  being recorded silently. Announced banked resets say they are a credit you
+  apply, not an automatic reset. New "Alert on reset hints" setting, on by
+  default once announcements are enabled.
+
 ## v0.1.0-alpha.3
 
 Interface redesign; collection, eligibility and storage are unchanged.
