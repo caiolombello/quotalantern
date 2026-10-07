@@ -17,15 +17,17 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("AyatanaAppIndicator3", "0.1")
+gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import AyatanaAppIndicator3 as AppIndicator3
-from gi.repository import GLib, Gtk
+from gi.repository import GdkPixbuf, GLib, Gtk
 
 from .config import AppConfig
 from .core.models import ProviderUsage, UsageWindow
 from .dashboard import DashboardWindow
 from .providers import PROVIDER_BY_ID
 from . import ui_common as ui
-from .presentation import APP_NAME, reading_details, tray_reading
+from .presentation import APP_NAME, format_next_reset, menu_rows, reading_badge, reading_details, reset_view, tray_reading
+from .codex_resets import SITE_URL
 from .icons import ensure_gauge_icon
 
 logger = logging.getLogger("codexbar-linux")
@@ -67,6 +69,7 @@ class TrayApp:
         self._last_updated_at: Optional[datetime] = None
         self._refreshing = False
         self._dashboard: Optional[DashboardWindow] = None
+        self._codex_resets = None
 
     def _cfg(self) -> AppConfig:
         if self.get_config:
@@ -77,24 +80,23 @@ class TrayApp:
         menu = Gtk.Menu()
         cfg = self._cfg()
 
+        # Ring context first: what the icon shows, then source, age and coverage.
         reading = tray_reading(usages, warn_at=cfg.threshold_warning, crit_at=cfg.threshold_critical)
-        ring_info = Gtk.MenuItem(label="Tray ring · " + reading.description)
-        ring_info.set_sensitive(False)
-        menu.append(ring_info)
-        menu.append(Gtk.SeparatorMenuItem())
-
+        for row in menu_rows(reading):
+            self._plain_row(menu, row)
         header = self._build_header_label(usages, next_reset, cfg)
         if header:
-            item = Gtk.MenuItem(label=header)
-            item.set_sensitive(False)
-            menu.append(item)
-            menu.append(Gtk.SeparatorMenuItem())
+            self._plain_row(menu, header)
+        menu.append(Gtk.SeparatorMenuItem())
 
-        if self._refreshing:
-            loading = Gtk.MenuItem(label="Refreshing…")
-            loading.set_sensitive(False)
-            menu.append(loading)
-            menu.append(Gtk.SeparatorMenuItem())
+        overview = Gtk.MenuItem(label="Open Overview…")
+        overview.connect("activate", lambda *_: self.open_dashboard())
+        menu.append(overview)
+        refresh = Gtk.MenuItem(label="Refreshing…" if self._refreshing else "Refresh Now")
+        refresh.set_sensitive(not self._refreshing)
+        refresh.connect("activate", lambda *_: self._trigger_refresh())
+        menu.append(refresh)
+        menu.append(Gtk.SeparatorMenuItem())
 
         buckets = ui.classify_usages(
             usages,
@@ -104,58 +106,41 @@ class TrayApp:
         )
 
         sections = [
-            ("Critical", buckets["critical"]),
+            ("At the limit", buckets["critical"]),
             ("Active", buckets["active"]),
-            ("Errors", buckets["errors"]),
-            ("Offline", buckets["offline"]),
+            ("Problems", buckets["errors"]),
+            ("Not connected", buckets["offline"]),
         ]
         any_item = False
         for title, items in sections:
             if not items:
                 continue
             any_item = True
-            section = Gtk.MenuItem(label=f"── {title} ──")
-            section.set_sensitive(False)
-            menu.append(section)
+            self._plain_row(menu, f"{title} · {len(items)}")
             for usage in items:
                 menu.append(self._provider_item(usage, cfg))
 
         if not any_item:
-            no_data = Gtk.MenuItem(label="No providers to show — open Settings")
-            no_data.set_sensitive(False)
-            menu.append(no_data)
+            self._plain_row(menu, "No providers to show — enable some in Settings")
+
+        view = reset_view(getattr(self, "_codex_resets", None))
+        if view is not None:
+            menu.append(Gtk.SeparatorMenuItem())
+            menu.append(self._codex_resets_item(view))
 
         menu.append(Gtk.SeparatorMenuItem())
-
-        overview = Gtk.MenuItem(label="📊  Open overview…")
-        overview.connect("activate", lambda *_: self.open_dashboard())
-        menu.append(overview)
-
-        menu.append(Gtk.SeparatorMenuItem())
-        actions = Gtk.MenuItem(label="Actions ▸")
-        sub = Gtk.Menu()
-
-        refresh = Gtk.MenuItem(label="🔄  Refresh now")
-        refresh.connect("activate", lambda *_: self._trigger_refresh())
-        sub.append(refresh)
-
-        settings = Gtk.MenuItem(label="⚙️  Settings…")
+        settings = Gtk.MenuItem(label="Settings…")
         settings.connect("activate", lambda *_: self._open_settings())
-        sub.append(settings)
-
-        logs = Gtk.MenuItem(label="📄  Open logs")
+        menu.append(settings)
+        logs = Gtk.MenuItem(label="Open Logs")
         logs.connect("activate", lambda *_: self._open_logs())
-        sub.append(logs)
-
-        about = Gtk.MenuItem(label="ℹ️  About")
+        menu.append(logs)
+        about = Gtk.MenuItem(label=f"About {APP_NAME}")
         about.connect("activate", lambda *_: self._show_about())
-        sub.append(about)
-
-        actions.set_submenu(sub)
-        menu.append(actions)
+        menu.append(about)
 
         menu.append(Gtk.SeparatorMenuItem())
-        quit_it = Gtk.MenuItem(label="⏻  Quit")
+        quit_it = Gtk.MenuItem(label=f"Quit {APP_NAME}")
         quit_it.connect("activate", lambda *_: self.on_quit())
         menu.append(quit_it)
 
@@ -176,27 +161,18 @@ class TrayApp:
         cfg: AppConfig,
     ) -> str:
         parts: list[str] = []
+        # The ring rows above already name the most-used window; only the
+        # opt-in headroom heuristic adds something here.
         if cfg.label_mode == "recommend":
             best_name, best_window, best_pct = ui.recommendation(usages)
             if best_name:
-                parts.append(f"Use {best_name} {best_window} ({best_pct}%)")
-        else:
-            bot_name, bot_pct = ui.bottleneck(usages)
-            if bot_name:
-                level = (
-                    "crit"
-                    if bot_pct >= cfg.threshold_critical
-                    else "warn"
-                    if bot_pct >= cfg.threshold_warning
-                    else "ok"
-                )
-                parts.append(f"{ui.status_emoji(level)} {bot_name} {bot_pct}%")
+                parts.append(f"Most headroom: {best_name} {best_window} ({best_pct}%)")
 
         if next_reset:
-            parts.append(f"Next: {ui.clean_reset(next_reset)}")
+            parts.append(format_next_reset(next_reset))
         if self._last_updated_at:
             age = datetime.now(timezone.utc) - self._last_updated_at
-            parts.append(ui.human_age(age))
+            parts.append(f"Last check {ui.human_age(age)}")
         return "  ·  ".join(parts)
 
     def _provider_item(self, usage: ProviderUsage, cfg: AppConfig) -> Gtk.MenuItem:
@@ -205,20 +181,24 @@ class TrayApp:
         )
         emoji = ui.status_emoji(level)
         name = ui.display_name(usage.provider)
-        stale = ui.is_stale(usage.error)
+        badge_kind, badge = reading_badge(usage)
+        if ui.has_usage_data(usage) and badge_kind in ("stale", "neutral"):
+            emoji = "⚪"  # color only for confirmed readings
 
         if level == "soft":
-            label = f"{emoji}  {name}  · off"
+            label = f"{emoji}  {name}  —  not connected"
         elif level == "error":
-            label = f"{emoji}  {name}"
+            label = f"{emoji}  {name}  —  error"
         elif ui.has_usage_data(usage):
             pct = ui.worst_usage_pct(usage)
-            bar = ui.block_bar(pct, width=6)
-            label = f"{emoji} {bar}  {name}  {pct}%"
-            if stale:
-                label += " · cached / stale"
+            bar = ui.block_bar(pct, width=8)
+            label = f"{emoji}  {name}  {pct}%  {bar}"
+            if badge_kind != "ok":
+                label += f"  · {badge}"
+        elif ui.monetary_label(usage):
+            label = f"{emoji}  {name}  —  spend only"
         else:
-            label = f"{emoji}  {name} · quota unknown"
+            label = f"{emoji}  {name}  —  quota unknown"
 
         item = Gtk.MenuItem(label=label)
         submenu = Gtk.Menu()
@@ -267,6 +247,34 @@ class TrayApp:
         item.set_submenu(submenu)
         return item
 
+    def _codex_resets_item(self, view) -> Gtk.MenuItem:
+        """Global announcements from codex-resets.com, attributed and kept apart from quotas."""
+        item = Gtk.MenuItem(label=view.headline)
+        submenu = Gtk.Menu()
+        for line in view.lines:
+            self._plain_row(submenu, line)
+        if view.announcement_url != SITE_URL:
+            announcement = Gtk.MenuItem(label="Open Announcement ↗")
+            announcement.connect("activate", lambda *_, u=view.announcement_url: webbrowser.open(u))
+            submenu.append(announcement)
+        site = Gtk.MenuItem(label="Open codex-resets.com ↗")
+        site.connect("activate", lambda *_: webbrowser.open(SITE_URL))
+        submenu.append(site)
+        item.set_submenu(submenu)
+        return item
+
+    def set_codex_resets(self, snapshot) -> bool:
+        """Receive Codex Resets data on the GTK thread; None hides it."""
+        if snapshot is not None and not self._cfg().codex_resets_enabled:
+            snapshot = None
+        self._codex_resets = snapshot
+        if self.indicator is not None:
+            self.menu = self._build_menu(self._last_usages, self._last_next_reset)
+            self.indicator.set_menu(self.menu)
+        if self._dashboard is not None:
+            self._dashboard.set_codex_resets(snapshot)
+        return False
+
     def _window_item(self, name: str, window: UsageWindow) -> Gtk.MenuItem:
         item = Gtk.MenuItem(label=ui.window_label(name, window))
         item.set_sensitive(False)
@@ -283,15 +291,14 @@ class TrayApp:
         )
         if not url:
             return
-        menu.append(Gtk.SeparatorMenuItem())
-        item = Gtk.MenuItem(label="🌐  Open web dashboard")
+        item = Gtk.MenuItem(label="Open Usage Page ↗")
         item.connect("activate", lambda *_: webbrowser.open(url))
         menu.append(item)
 
     def _append_refresh_provider_item(self, menu: Gtk.Menu, provider: str) -> None:
         label = ui.display_name(provider)
         menu.append(Gtk.SeparatorMenuItem())
-        item = Gtk.MenuItem(label=f"🔄  Refresh {label}")
+        item = Gtk.MenuItem(label=f"Refresh {label}")
         item.connect("activate", lambda *_: self.on_refresh_provider(provider))
         menu.append(item)
 
@@ -303,8 +310,10 @@ class TrayApp:
                 get_config=self._cfg,
                 open_urls=self.open_urls,
                 on_open_settings=self._open_settings,
+                theme=self.icon_theme,
             )
         self._dashboard.open_urls = self.open_urls
+        self._dashboard.set_codex_resets(getattr(self, "_codex_resets", None))
         self._dashboard.update(
             self._last_usages,
             self._last_next_reset,
@@ -322,11 +331,16 @@ class TrayApp:
             return
         from .settings_dialog import SettingsDialog
 
+        parent = None
+        if self._dashboard is not None and self._dashboard._window is not None:
+            if self._dashboard._window.get_visible():
+                parent = self._dashboard._window
         SettingsDialog(
-            parent=None,
+            parent=parent,
             config=self.get_config(),
             on_saved=self._on_settings_saved,
             on_refresh=self.on_refresh,
+            theme=self.icon_theme,
         ).present()
 
     def _on_settings_saved(self, cfg: AppConfig) -> None:
@@ -358,13 +372,20 @@ class TrayApp:
     def _show_about(self) -> None:
         dialog = Gtk.AboutDialog()
         dialog.set_program_name(APP_NAME)
-        dialog.set_version("0.1.0-alpha.2")
+        dialog.set_version("0.1.0-alpha.3")
         dialog.set_comments(
-            "AI coding provider usage monitor for Linux\n"
-            "Source preview · source, freshness and uncertainty"
+            "AI usage, quotas, resets and costs in your Linux tray.\n"
+            "Every reading shows its source and age; unknown is never zero."
         )
-        dialog.set_website("https://github.com/caiolombello/quotalantern")
-        dialog.set_website_label("GitHub")
+        dialog.set_license_type(Gtk.License.MIT_X11)
+        dialog.set_website("https://caiolombello.github.io/quotalantern/")
+        dialog.set_website_label("Website")
+        dialog.set_copyright("Independent project · third-party notices in NOTICE")
+        icon = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "icon.svg")
+        try:
+            dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file_at_size(icon, 96, 96))
+        except (GLib.Error, TypeError):
+            logger.debug("About logo unavailable", exc_info=True)
         dialog.run()
         dialog.destroy()
 

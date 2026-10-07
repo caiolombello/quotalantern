@@ -136,5 +136,44 @@ class OpenCodeSettingsTests(unittest.TestCase):
         self.refresh.assert_called_once_with()
 
 
+@unittest.skipIf(settings_dialog is None, "GTK bindings unavailable")
+class ThresholdValidationTests(unittest.TestCase):
+    def setUp(self):
+        if not Gtk.init_check()[0]:
+            self.skipTest("GTK display unavailable")
+        auth = SimpleNamespace(OAuthError=Exception, login_status=mock.Mock(return_value="disconnected"))
+        patch = mock.patch.object(settings_dialog, "opencode_auth", auth, create=True)
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.saved = mock.Mock()
+        self.view = settings_dialog.SettingsDialog(None, settings_dialog.AppConfig(), self.saved)
+        self.addCleanup(self.view.dialog.destroy)
+
+    def test_save_is_blocked_until_levels_are_ordered(self):
+        self.assertTrue(self.view._save_button.get_sensitive())
+        self.view.warn_spin.set_value(99)
+        self.assertFalse(self.view._save_button.get_sensitive())
+        self.assertIn("lower than Critical", self.view._levels_error.get_text())
+        self.view.warn_spin.set_value(80)
+        self.view.info_spin.set_value(90)
+        self.assertFalse(self.view._save_button.get_sensitive())
+        self.view.info_spin.set_value(60)
+        self.assertTrue(self.view._save_button.get_sensitive())
+        self.assertEqual(self.view._levels_error.get_text(), "")
+
+    def test_switches_feed_the_saved_config(self):
+        self.view._provider_toggles["claude"].set_active(False)
+        self.view._provider_toggles["openai-api"].set_active(True)
+        self.view.hide_offline.set_active(True)
+        self.assertFalse(self.view.codex_resets.get_active())
+        self.view.codex_resets.set_active(True)
+        cfg = self.view._collect()
+        self.assertTrue(cfg.codex_resets_enabled)
+        self.assertNotIn("claude", cfg.enabled_providers)
+        self.assertIn("openai-api", cfg.enabled_providers)
+        self.assertTrue(cfg.hide_offline)
+        self.assertIn("enabled", self.view._enabled_count.get_text())
+
+
 if __name__ == "__main__":
     unittest.main()

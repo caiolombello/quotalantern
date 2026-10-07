@@ -15,6 +15,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Notify", "0.7")
 from gi.repository import GLib, Notify
 
+from .codex_resets import ResetFeed, new_announcements
 from .codexbar import fetch_all, fetch_provider
 from .config import AppConfig, ensure_config_file, load_config
 from .core.logging import install_thread_exception_hook, setup_logging
@@ -23,8 +24,10 @@ from .desktop import detect_desktop_theme
 from .icons import ensure_icons
 from .state import append_history, load_state, save_state, snapshot
 from .tray import TrayApp
+from .ui_common import display_name
 
 logger = logging.getLogger("codexbar-linux")
+APP_ICON = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "icon.svg")
 
 
 class CodexBarLinuxApp:
@@ -56,12 +59,15 @@ class CodexBarLinuxApp:
         self._timer: threading.Timer | None = None
         self._running = False
         self._refresh_lock = threading.Lock()
+        self._reset_feed = ResetFeed()
 
         Notify.init("codexbar-linux")
 
     def apply_config(self, cfg: AppConfig) -> None:
         """Hot-apply settings without restarting the tray."""
         prev_enabled = set(self.config.enabled_providers)
+        prev_region = self.config.glm_region
+        prev_resets = self.config.codex_resets_enabled
         self.config = cfg
         self.tray.open_urls = cfg.open_urls
         logger.info(
@@ -74,8 +80,15 @@ class CodexBarLinuxApp:
             self._timer.cancel()
         if self._running:
             self._schedule_refresh()
-        # If provider set changed, refresh so menu reflects new data
-        if set(cfg.enabled_providers) != prev_enabled:
+        if prev_resets and not cfg.codex_resets_enabled:
+            self._reset_feed.clear()
+            self.tray.set_codex_resets(None)
+        # If providers, the GLM endpoint or announcements changed, refresh so the menu reflects it
+        if (
+            set(cfg.enabled_providers) != prev_enabled
+            or cfg.glm_region != prev_region
+            or cfg.codex_resets_enabled != prev_resets
+        ):
             self.refresh_async()
 
     def _schedule_refresh(self) -> None:
@@ -110,7 +123,19 @@ class CodexBarLinuxApp:
         finally:
             self._refresh_lock.release()
 
+    def _check_codex_resets(self) -> None:
+        """Opt-in global announcements; throttled inside ResetFeed."""
+        if not self.config.codex_resets_enabled or not self._reset_feed.refresh():
+            return
+        snapshot = self._reset_feed.snapshot()
+        notes, seen = new_announcements(self._state.get("codex_resets", {}), snapshot.status)
+        self._state["codex_resets"] = seen
+        for title, body in notes:
+            self._notify(title, body, sound="message")
+        GLib.idle_add(self.tray.set_codex_resets, snapshot)
+
     def _refresh_locked(self) -> None:
+        self._check_codex_resets()
         usages: list[ProviderUsage] = []
         try:
             usages = fetch_all(enabled=self.config.enabled_providers)
@@ -176,7 +201,7 @@ class CodexBarLinuxApp:
         for usage in usages:
             if usage.error and "cookie expired" in usage.error.lower():
                 self._notify(
-                    f"{usage.provider} auth expired",
+                    f"{display_name(usage.provider)} sign-in expired",
                     usage.error,
                     sound="dialog-warning",
                 )
@@ -190,8 +215,8 @@ class CodexBarLinuxApp:
         for threshold, name in thresholds:
             if previous < threshold <= current:
                 self._notify(
-                    title=f"{label} {name}",
-                    body=f"Usage reached {current}%. {reset or 'Reset time unavailable'}.",
+                    title=f"{label} at {current}% ({name.lower()})",
+                    body=f"Crossed your {threshold}% {name.lower()} level · {reset or 'reset time unavailable'}",
                     sound="message",
                 )
 
@@ -223,7 +248,7 @@ class CodexBarLinuxApp:
                 if not window:
                     continue
                 key = f"{usage.provider}:{name.lower()}"
-                label = f"{usage.provider} {name}"
+                label = f"{display_name(usage.provider)} {name}"
                 windows.append((key, label, window.used_percent, window.reset_description))
         return windows
 
@@ -252,7 +277,7 @@ class CodexBarLinuxApp:
     @staticmethod
     def _notify(title: str, body: str, sound: Optional[str] = None) -> None:
         try:
-            notification = Notify.Notification.new(f"QuotaLantern · {title}", body, "dialog-warning")
+            notification = Notify.Notification.new(f"QuotaLantern · {title}", body, APP_ICON)
             notification.show()
             if sound:
                 import subprocess

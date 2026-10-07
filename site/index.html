@@ -1,11 +1,230 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="QuotaLantern: conceito local de um painel de uso de IA no desktop Linux."><title>QuotaLantern — Uso de IA, à vista</title><link rel="icon" href="assets/facho-small-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)"><link rel="icon" href="assets/facho-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)"><link rel="stylesheet" href="style.css"><script src="ui.js" defer></script></head>
-<body><a class="skip" href="#main" data-pt="Ir ao conteúdo" data-en="Skip to content">Ir ao conteúdo</a><div class="preview" data-pt="Prévia pública · exemplos com dados sintéticos" data-en="Public preview · examples with synthetic data">Prévia pública · exemplos com dados sintéticos</div>
-<div class="shell"><header class="nav"><a class="brand" href="index.html"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-dark.svg"><img src="assets/facho-light.svg" alt="" width="38" height="38"></picture>QuotaLantern</a><nav class="nav-links" aria-label="Principal"><a href="#product" data-pt="O produto" data-en="Product">O produto</a><a href="#sources" data-pt="Fontes e limites" data-en="Sources & limits">Fontes e limites</a><div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-lang="pt-BR" aria-pressed="true">PT</button><button type="button" data-lang="en" aria-pressed="false">EN</button></div></nav></header>
-<main id="main"><section class="hero"><div><div class="eyebrow" data-pt="Feito para viver no desktop Linux" data-en="Designed for your Linux desktop">Feito para viver no desktop Linux</div><h1 data-pt="Suas IAs.<br>Seus limites.<br>Tudo à vista." data-en="Your AI tools.<br>Your limits.<br>In plain sight.">Suas IAs.<br>Seus limites.<br>Tudo à vista.</h1><p class="lead" data-pt="Entenda uso, cotas e resets sem sair do fluxo. Saiba também de onde veio o dado — e quando ele já não merece confiança." data-en="Understand usage, quotas and resets without leaving your flow. Know where each reading comes from — and when it is no longer trustworthy.">Entenda uso, cotas e resets sem sair do fluxo. Saiba também de onde veio o dado — e quando ele já não merece confiança.</p><div class="actions"><a class="button primary" href="dashboard.html" data-pt="Explorar o conceito" data-en="Explore the concept">Explorar o conceito</a><a href="#sources" data-pt="O que já foi verificado" data-en="What has been verified">O que já foi verificado</a></div><p class="small" data-pt="Prévia inicial. Código e release no GitHub; exemplos sintéticos, sem coleta de dados neste site." data-en="Initial preview. Source and release on GitHub; synthetic examples and no data collection on this site.">Prévia inicial. Código e release no GitHub; exemplos sintéticos, sem coleta de dados neste site.</p></div>
-<figure class="sample-window" aria-label="Conceito de painel com dados de exemplo" style="margin:0"><div class="window-bar"><span class="brand"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-small-dark.svg"><img src="assets/facho-small-light.svg" alt="" width="24" height="24"></picture>QuotaLantern</span><span class="chip" data-pt="Exemplo" data-en="Example">Exemplo</span></div><div class="sample-content"><div class="provider-head"><h3>Codex</h3><span class="chip ok" data-pt="✓ Recente" data-en="✓ Fresh">✓ Recente</span></div><div class="meter-label"><span data-pt="Janela de 5 horas" data-en="5-hour window">Janela de 5 horas</span><strong>42%</strong></div><div class="track"><div class="fill" style="width:42%"></div></div><div class="meter-label"><span data-pt="Janela semanal" data-en="Weekly window">Janela semanal</span><strong>71%</strong></div><div class="track"><div class="fill warn" style="width:71%"></div></div><p class="source" data-pt="OpenAI OAuth · exemplo de leitura há 2 min" data-en="OpenAI OAuth · example reading 2 min ago">OpenAI OAuth · exemplo de leitura há 2 min</p><div class="sample-divider"></div><div class="provider-head"><h3>OpenAI API</h3><span class="chip" data-pt="Gasto mensal" data-en="Monthly spend">Gasto mensal</span></div><p class="cost">$12.50 <span>USD</span></p><p class="source" data-pt="Relatório de custos · não é uma cota" data-en="Cost report · not an allowance">Relatório de custos · não é uma cota</p><div class="sample-divider"></div><div class="provider-head"><h3>Gemini</h3><span class="chip" data-pt="? Desconhecido" data-en="? Unknown">? Desconhecido</span></div><p class="small" data-pt="Sem uma leitura válida. Não vamos chamar isso de 0%." data-en="No valid reading. That does not mean 0%.">Sem uma leitura válida. Não vamos chamar isso de 0%.</p></div></figure></section>
-<section class="facts" id="product" aria-label="Integrações no código"><article><h3 data-pt="Um lugar no seu painel" data-en="A place in your panel">Um lugar no seu painel</h3><p data-pt="Tray, ícone no launcher e dashboard já estão no código. A nova identidade acompanha essas integrações." data-en="Tray, launcher icon and dashboard already exist in the code. The new identity follows those integrations.">Tray, ícone no launcher e dashboard já estão no código. A nova identidade acompanha essas integrações.</p></article><article><h3 data-pt="Cada leitura, com contexto" data-en="Context for every reading">Cada leitura, com contexto</h3><p data-pt="Fonte, janela e idade visíveis. Cotas, créditos e gasto precisam de unidades próprias — sem zeros inventados." data-en="Visible source, window and age. Quotas, credits and spend need their own units — without invented zeros.">Fonte, janela e idade visíveis. Cotas, créditos e gasto precisam de unidades próprias — sem zeros inventados.</p></article><article><h3 data-pt="Ações no seu ritmo" data-en="Actions at your pace">Ações no seu ritmo</h3><p data-pt="Preservar atualização por provider, acesso à fonte e alertas de recuperação. Sem precisar manter uma janela aberta." data-en="Keep per-provider refresh, source links and recovery alerts. No need to keep a window open.">Preservar atualização por provider, acesso à fonte e alertas de recuperação. Sem precisar manter uma janela aberta.</p></article></section>
-<section class="section" id="sources"><div class="eyebrow" data-pt="Evidência antes da promessa" data-en="Evidence before promises">Evidência antes da promessa</div><h2 data-pt="Fontes diferentes. Certezas diferentes." data-en="Different sources. Different confidence.">Fontes diferentes. Certezas diferentes.</h2><p data-pt="O pacote dos medidores passou em 52 testes offline. Isso valida os casos sintéticos testados, não todos os providers, respostas reais ou desktops Linux." data-en="The meter package passed 52 offline tests. That validates the synthetic cases tested, not every provider, live response or Linux desktop.">O pacote dos medidores passou em 52 testes offline. Isso valida os casos sintéticos testados, não todos os providers, respostas reais ou desktops Linux.</p>
-<table class="support"><thead><tr><th data-pt="Recorte" data-en="Scope">Recorte</th><th data-pt="Fonte no código" data-en="Source in code">Fonte no código</th><th data-pt="Verificação atual" data-en="Current verification">Verificação atual</th></tr></thead><tbody><tr><td>Codex</td><td>OpenAI OAuth</td><td data-pt="Percentuais inválidos rejeitados; heurística limitada a esta fonte." data-en="Invalid percentages rejected; headroom heuristic limited to this source.">Percentuais inválidos rejeitados; heurística limitada a esta fonte.</td></tr><tr><td>OpenAI API · Claude API</td><td data-pt="Relatórios administrativos de custos" data-en="Organization cost reports">Relatórios administrativos de custos</td><td data-pt="Escalas e paginação completas testadas offline; gasto separado de cota." data-en="Currency scales and complete pagination tested offline; spend separated from quota.">Escalas e paginação completas testadas offline; gasto separado de cota.</td></tr><tr><td>Kiro</td><td data-pt="Limites de créditos" data-en="Credit limits">Limites de créditos</td><td data-pt="Dado ausente/inválido não vira 0%; integração real pendente." data-en="Missing/invalid readings do not become 0%; live integration pending.">Dado ausente/inválido não vira 0%; integração real pendente.</td></tr><tr><td data-pt="Demais adaptadores" data-en="Other adapters">Demais adaptadores</td><td data-pt="APIs, clientes e dashboards" data-en="APIs, clients and dashboards">APIs, clientes e dashboards</td><td data-pt="Existem no código; cobertura, acesso permitido e qualidade ainda precisam ser qualificados." data-en="Present in the code; coverage, permitted access and quality still need qualification.">Existem no código; cobertura, acesso permitido e qualidade ainda precisam ser qualificados.</td></tr></tbody></table></section>
-<section class="section two-col"><article><h2 data-pt="Integração Linux, em validação." data-en="Linux integration, under validation.">Integração Linux, em validação.</h2><p data-pt="GTK 3, Ayatana AppIndicator e libnotify formam a base. Há adaptações para Plasma/Wayland e hosts de tray; compatibilidade visual e operacional depende da sessão e ainda precisa de QA real." data-en="GTK 3, Ayatana AppIndicator and libnotify form the base. There are Plasma/Wayland and tray-host adaptations; visual and operational compatibility depends on the session and still needs real QA.">GTK 3, Ayatana AppIndicator e libnotify formam a base. Há adaptações para Plasma/Wayland e hosts de tray; compatibilidade visual e operacional depende da sessão e ainda precisa de QA real.</p></article><article><h2 data-pt="Credenciais ficam fora da vitrine." data-en="Credentials stay out of the showcase.">Credenciais ficam fora da vitrine.</h2><p data-pt="A demonstração usa somente dados sintéticos e não acessa contas. A aplicação consulta fontes externas quando ativadas; permissões, leitura de credenciais/cookies e retenção precisam estar claras antes de distribuir." data-en="The demo uses only synthetic data and accesses no accounts. The app queries external sources when enabled; permissions, credential/cookie access and retention must be clear before distribution.">A demonstração usa somente dados sintéticos e não acessa contas. A aplicação consulta fontes externas quando ativadas; permissões, leitura de credenciais/cookies e retenção precisam estar claras antes de distribuir.</p></article></section>
-<section class="section"><div class="note"><h3 data-pt="Uma prévia, com limites claros." data-en="A preview with clear limits.">Uma prévia, com limites claros.</h3><p data-pt="Código próprio sob MIT, com créditos e avisos de terceiros preservados. A primeira release é uma prévia de código-fonte; compatibilidade e acesso a cada provider têm limites documentados." data-en="Original code is MIT licensed, with third-party credits and notices preserved. The first release is a source preview; compatibility and provider access have documented limits.">Código próprio sob MIT, com créditos e avisos de terceiros preservados. A primeira release é uma prévia de código-fonte; compatibilidade e acesso a cada provider têm limites documentados.</p></div></section></main><footer class="footer"><span>QuotaLantern</span><span data-pt="Projeto independente · conceitos, não screenshots instaladas" data-en="Independent project · concepts, not installed screenshots">Projeto independente · conceitos, não screenshots instaladas</span><a href="dashboard.html" data-pt="Ver painel conceitual →" data-en="View dashboard concept →">Ver painel conceitual →</a><a href="https://github.com/caiolombello/quotalantern/releases/tag/v0.1.0-alpha.2" data-pt="Código e release ↗" data-en="Source and release ↗">Código e release ↗</a></footer></div></body></html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuotaLantern · Uma lanterna para as suas cotas de IA</title>
+<meta name="description" content="QuotaLantern mostra na bandeja do Linux quanto você já usou das cotas de Codex, Claude, Gemini e outros, com a origem e a idade de cada leitura." data-pt-content="QuotaLantern mostra na bandeja do Linux quanto você já usou das cotas de Codex, Claude, Gemini e outros, com a origem e a idade de cada leitura." data-en-content="QuotaLantern shows in your Linux tray how much of your Codex, Claude, Gemini and other AI quotas you have used, with the source and age of every reading.">
+<meta name="theme-color" content="#f4f1e9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d2030" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="QuotaLantern">
+<meta property="og:description" content="QuotaLantern shows in your Linux tray how much of your Codex, Claude, Gemini and other AI quotas you have used, with the source and age of every reading.">
+<link rel="icon" href="assets/facho-small-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
+<link rel="icon" href="assets/facho-small-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="style.css">
+<script src="ui.js" defer></script>
+</head>
+<body data-pt-title="QuotaLantern · Uma lanterna para as suas cotas de IA" data-en-title="QuotaLantern · A lantern for your AI quotas">
+<a class="skip" href="#main" data-pt="Pular para o conteúdo" data-en="Skip to content">Pular para o conteúdo</a>
+<p id="live" class="sr-only" aria-live="polite"></p>
+<header class="top">
+  <div class="wrap">
+    <a class="mark-word" href="index.html"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/facho-dark.svg"><img src="assets/facho-light.svg" alt="" width="26" height="26"></picture>QuotaLantern</a>
+    <nav aria-label="Seções" data-pt-aria="Seções" data-en-aria="Sections">
+      <a href="#demo" data-pt="Demonstração" data-en="Demo">Demonstração</a><a href="#estados" data-pt="Estados" data-en="States">Estados</a><a href="#adaptadores" data-pt="Adaptadores" data-en="Adapters">Adaptadores</a><a href="#instalar" data-pt="Instalar" data-en="Install">Instalar</a><a href="dashboard.html">Tour</a><a href="https://github.com/caiolombello/quotalantern">GitHub ↗</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-lang="pt-BR" aria-pressed="true">PT</button><button type="button" data-lang="en" aria-pressed="false">EN</button></div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero gridded">
+    <div class="wrap hero-grid" data-ring-figure>
+      <div class="hero-text">
+        <p class="meta">v0.1.0-alpha.3 · Linux, GTK 3 · MIT</p>
+        <h1 class="display" data-pt="Uma lanterna para as suas <em>cotas de IA</em>." data-en="A lantern for your <em>AI quotas</em>.">Uma lanterna para as suas <em>cotas de IA</em>.</h1>
+        <p class="lede" data-pt="O QuotaLantern fica na bandeja do sistema e mostra quanto você já usou da janela mais cheia entre Codex, Claude, Gemini e outros. Se a leitura está velha ou não chegou, o anel avisa em vez de mostrar zero." data-en="QuotaLantern sits in your system tray and shows how much of the fullest window you have used across Codex, Claude, Gemini and more. If a reading is old or never arrived, the ring says so instead of showing zero.">O QuotaLantern fica na bandeja do sistema e mostra quanto você já usou da janela mais cheia entre Codex, Claude, Gemini e outros. Se a leitura está velha ou não chegou, o anel avisa em vez de mostrar zero.</p>
+        <div class="btn-row">
+          <a class="btn solid" href="#instalar"><span data-pt="Instalar" data-en="Install">Instalar</span> <span aria-hidden="true">↓</span></a>
+          <a class="btn" href="https://github.com/caiolombello/quotalantern" data-pt="Código no GitHub ↗" data-en="Source on GitHub ↗">Código no GitHub ↗</a>
+        </div>
+      </div>
+
+      <figure class="hero-fig">
+        <div class="ring-stage" data-ring-stage><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" stroke-dasharray="34.306 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg><span class="pin" aria-hidden="true" style="left:86.6%;top:41%">1</span><span class="pin" aria-hidden="true" style="left:14.6%;top:85.4%">2</span><span class="pin" aria-hidden="true" style="left:70%;top:31%">3</span></div>
+        <figcaption class="caption"><span data-pt="Fig. 1 · O ícone da bandeja, ampliado. Tamanho real:" data-en="Fig. 1 · The tray icon, enlarged. Actual size:">Fig. 1 · O ícone da bandeja, ampliado. Tamanho real:</span> <span class="actual"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" stroke-dasharray="34.306 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg></span></figcaption>
+      </figure>
+
+      <div class="hero-legend">
+        <ol class="callouts" aria-live="polite">
+          <li data-callout><b>Arco.</b> 42% da sessão de 5 h do Codex já foi usado.</li>
+          <li data-callout><b>Cor.</b> Verde: abaixo do aviso de 85%. Os dois níveis são ajustáveis.</li>
+          <li data-callout><b>Centro.</b> O Facho, marca do app. Só aparece com leitura válida.</li>
+        </ol>
+        <div class="controls">
+          <div class="range-row"><label for="ring-range" data-pt="uso" data-en="usage">uso</label><input id="ring-range" type="range" min="0" max="100" value="42"><output for="ring-range">42%</output></div>
+          <fieldset class="seg">
+            <legend class="sr-only" data-pt="Tipo de leitura" data-en="Reading type">Tipo de leitura</legend>
+            <label><input type="radio" name="ring-mode" value="known" checked><span data-pt="leitura válida" data-en="valid reading">leitura válida</span></label>
+            <label><input type="radio" name="ring-mode" value="unknown"><span data-pt="sem leitura" data-en="no reading">sem leitura</span></label>
+            <label><input type="radio" name="ring-mode" value="stale"><span data-pt="antiga" data-en="stale">antiga</span></label>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="demo" aria-labelledby="demo-title">
+    <div class="sec-label"><b>Fig. 2</b>Overview</div>
+    <div>
+      <div class="sec-head">
+        <h2 class="display" id="demo-title" data-pt="Abra a janela e veja cada provedor." data-en="Open the window and see every provider.">Abra a janela e veja cada provedor.</h2>
+        <p data-pt="No menu da bandeja, <em>Open Overview</em> mostra o anel maior e um card por provedor: a barra de cada janela, quando ela reseta, de onde veio o dado e há quanto tempo foi lido." data-en="From the tray menu, <em>Open Overview</em> shows the ring larger and one card per provider: a bar for each window, when it resets, where the data came from and how long ago it was read.">No menu da bandeja, <em>Open Overview</em> mostra o anel maior e um card por provedor: a barra de cada janela, quando ela reseta, de onde veio o dado e há quanto tempo foi lido.</p>
+      </div>
+      <div class="demo" data-demo>
+        <fieldset class="scenario-list">
+          <legend data-pt="Escolha um cenário" data-en="Pick a scenario">Escolha um cenário</legend>
+          <label class="scenario"><input type="radio" name="scenario" value="normal" checked><span class="key">A</span><span class="name" data-pt="Tudo certo" data-en="All clear">Tudo certo</span><span class="desc" data-pt="Leituras recentes. O anel acompanha a janela mais cheia, aqui a sessão de 5 h do Codex." data-en="Fresh readings. The ring follows the fullest window, here Codex’s 5-hour session.">Leituras recentes. O anel acompanha a janela mais cheia, aqui a sessão de 5 h do Codex.</span></label>
+          <label class="scenario"><input type="radio" name="scenario" value="near"><span class="key">B</span><span class="name" data-pt="Perto do limite" data-en="Near the limit">Perto do limite</span><span class="desc" data-pt="O Claude passou de 95%. Anel e barra ficam vermelhos e o card sobe para o topo. O anel nunca soma provedores nem tira média." data-en="Claude went past 95%. Ring and bar turn red and the card moves to the top. The ring never adds providers up or averages them.">O Claude passou de 95%. Anel e barra ficam vermelhos e o card sobe para o topo. O anel nunca soma provedores nem tira média.</span></label>
+          <label class="scenario"><input type="radio" name="scenario" value="stale"><span class="key">C</span><span class="name" data-pt="Leitura antiga" data-en="Stale reading">Leitura antiga</span><span class="desc" data-pt="Nada foi confirmado nos últimos 10 minutos. As barras ficam cinza, o anel mostra um relógio e a janela lista o que ficou sem confirmação." data-en="Nothing was confirmed in the last 10 minutes. Bars turn grey, the ring shows a clock and the window lists what is unconfirmed.">Nada foi confirmado nos últimos 10 minutos. As barras ficam cinza, o anel mostra um relógio e a janela lista o que ficou sem confirmação.</span></label>
+          <label class="scenario"><input type="radio" name="scenario" value="unknown"><span class="key">D</span><span class="name" data-pt="Sem dados" data-en="No data">Sem dados</span><span class="desc" data-pt="O Gemini respondeu com erro e o Cursor não está conectado. Cada card diz o que fazer." data-en="Gemini returned an error and Cursor isn’t connected. Each card says what to do.">O Gemini respondeu com erro e o Cursor não está conectado. Cada card diz o que fazer.</span></label>
+        </fieldset>
+        <figure>
+          <div class="plate">
+            <div class="panel" aria-hidden="true"><span class="glyph round"></span><span class="glyph"></span><span class="tray-ring" data-tray-ring></span><span>14:32</span></div>
+            <div class="app-window">
+              <div class="titlebar">QuotaLantern</div>
+              <div class="app-head">
+                <div class="app-ring" data-app-ring></div>
+                <div>
+                  <div class="app-title" data-app-title>Codex Primary (5h): 42% used</div>
+                  <div class="app-sub" data-app-sub></div>
+                  <div class="app-unconfirmed" data-app-unconfirmed hidden></div>
+                </div>
+                <div class="app-buttons"><span class="app-btn">Settings</span><span class="app-btn primary">Refresh</span></div>
+              </div>
+              <div class="app-body" data-app-body></div>
+              <div class="app-foot">Auto-refresh every 5 min  ·  The ring follows one window — never a total or average</div>
+            </div>
+          </div>
+          <figcaption class="caption plate-cap" data-pt="Fig. 2 · Janela Overview com dados inventados. O texto do app é em inglês." data-en="Fig. 2 · Overview window with made-up data. The app’s text is in English.">Fig. 2 · Janela Overview com dados inventados. O texto do app é em inglês.</figcaption>
+          <p class="scenario-note" data-scenario-note aria-live="polite"></p>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="estados" aria-labelledby="states-title">
+    <div class="sec-label"><b>Tab. 1</b><span data-pt="Estados" data-en="States">Estados</span></div>
+    <div>
+      <div class="sec-head">
+        <h2 class="display" id="states-title" data-pt="Como ler o anel" data-en="How to read the ring">Como ler o anel</h2>
+        <p data-pt="O ícone é desenhado num grid de 32 pixels e continua legível a 16. Cada estado tem uma forma própria, então dá para diferenciar sem depender da cor." data-en="The icon is drawn on a 32-pixel grid and stays legible at 16. Each state has its own shape, so you can tell them apart without relying on color.">O ícone é desenhado num grid de 32 pixels e continua legível a 16. Cada estado tem uma forma própria, então dá para diferenciar sem depender da cor.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="spec">
+          <thead><tr><th scope="col" data-pt="16 / 24 px" data-en="16 / 24 px">16 / 24 px</th><th scope="col" data-pt="Estado" data-en="State">Estado</th><th scope="col" data-pt="Quando aparece" data-en="When it shows">Quando aparece</th></tr></thead>
+          <tbody>
+            <tr><td><span class="icons"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" stroke-dasharray="24.504 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--ok)" stroke-width="3" stroke-dasharray="24.504 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg></span></td><th scope="row" data-pt="Verde" data-en="Green">Verde</th><td data-pt="Leitura recente abaixo do aviso, 85% por padrão." data-en="Recent reading below the warning level, 85% by default.">Leitura recente abaixo do aviso, 85% por padrão.</td></tr>
+            <tr><td><span class="icons"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--warn)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--warn)" stroke-width="3" stroke-dasharray="71.880 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--warn)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--warn)" stroke-width="3" stroke-dasharray="71.880 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg></span></td><th scope="row" data-pt="Âmbar" data-en="Amber">Âmbar</th><td data-pt="Entre o aviso e o nível crítico." data-en="Between the warning and critical levels.">Entre o aviso e o nível crítico.</td></tr>
+            <tr><td><span class="icons"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--crit)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--crit)" stroke-width="3" stroke-dasharray="79.231 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--crit)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--crit)" stroke-width="3" stroke-dasharray="79.231 81.681" transform="rotate(-90 16 16)"/><g transform="translate(7.68 7.68) scale(.52)" fill="var(--ink)"><path d="M9 3H15V6H18L23 11H1L6 6H9Z"/><path d="M3 13H7L10 26H18L21 13H25L21 30H7Z"/><path d="M12 14L30 12V20L12 18Z"/></g></svg></span></td><th scope="row" data-pt="Vermelho" data-en="Red">Vermelho</th><td data-pt="No nível crítico ou acima, 95% por padrão." data-en="At or above the critical level, 95% by default.">No nível crítico ou acima, 95% por padrão.</td></tr>
+            <tr><td><span class="icons"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-dasharray="2 3"/><path d="M11 16H21" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-linecap="round"/></svg><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-dasharray="2 3"/><path d="M11 16H21" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-linecap="round"/></svg></span></td><th scope="row" data-pt="Pontilhado com traço" data-en="Dotted with a dash">Pontilhado com traço</th><td data-pt="Sem leitura válida, com erro ou só com custo em moeda." data-en="No valid reading, an error, or currency cost only.">Sem leitura válida, com erro ou só com custo em moeda.</td></tr>
+            <tr><td><span class="icons"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-dasharray="7 3"/><path d="M16 10V16L20 19" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-linecap="round"/></svg><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" opacity=".25"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-dasharray="7 3"/><path d="M16 10V16L20 19" fill="none" stroke="var(--neutral)" stroke-width="3" stroke-linecap="round"/></svg></span></td><th scope="row" data-pt="Tracejado com relógio" data-en="Dashed with a clock">Tracejado com relógio</th><td data-pt="Leitura de cache ou com mais de 10 minutos." data-en="Cached reading or older than 10 minutes.">Leitura de cache ou com mais de 10 minutos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note" data-pt="Com vários provedores, o anel mostra a janela mais cheia entre as leituras recentes, e o menu diz qual é. Custos de API aparecem em moeda nos cards e nunca entram no anel. <a href='icons.html'>Matriz completa de ícones</a>." data-en="With several providers, the ring shows the fullest window among recent readings, and the menu says which one. API costs show up in currency on the cards and never feed the ring. <a href='icons.html'>Full icon matrix</a>.">Com vários provedores, o anel mostra a janela mais cheia entre as leituras recentes, e o menu diz qual é. Custos de API aparecem em moeda nos cards e nunca entram no anel. <a href="icons.html">Matriz completa de ícones</a>.</p>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="adaptadores" aria-labelledby="adapters-title">
+    <div class="sec-label"><b>Tab. 2</b><span data-pt="Adaptadores" data-en="Adapters">Adaptadores</span></div>
+    <div>
+      <div class="sec-head">
+        <h2 class="display" id="adapters-title" data-pt="O que ele lê, e quanto disso foi testado" data-en="What it reads, and how much of that is tested">O que ele lê, e quanto disso foi testado</h2>
+        <p data-pt="Ter código para um serviço não garante suporte. A última coluna diz o que foi verificado até agora. Uma instalação nova liga só o Codex." data-en="Having code for a service doesn’t guarantee support. The last column says what has been verified so far. A fresh install turns on Codex only.">Ter código para um serviço não garante suporte. A última coluna diz o que foi verificado até agora. Uma instalação nova liga só o Codex.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="spec stack">
+          <thead><tr><th scope="col" data-pt="Adaptador" data-en="Adapter">Adaptador</th><th scope="col" data-pt="Mede" data-en="Measures">Mede</th><th scope="col" data-pt="Verificação" data-en="Verification">Verificação</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Codex</th><td class="kind" data-pt="limite do plano" data-en="plan limit">limite do plano</td><td><span class="status ok" data-pt="Verificado offline. É o único usado na sugestão de folga." data-en="Verified offline. The only one used for the headroom hint.">Verificado offline. É o único usado na sugestão de folga.</span></td></tr>
+            <tr><th scope="row">Kiro</th><td class="kind" data-pt="créditos do plano" data-en="plan credits">créditos do plano</td><td><span class="status warn" data-pt="Parcial. Dado inválido não vira 0%; falta testar com conta real." data-en="Partial. Invalid data never becomes 0%; still needs a real-account test.">Parcial. Dado inválido não vira 0%; falta testar com conta real.</span></td></tr>
+            <tr><th scope="row">OpenAI API, Claude API</th><td class="kind" data-pt="custo em moeda" data-en="currency cost">custo em moeda</td><td><span class="status ok" data-pt="Escala de moeda e paginação completa testadas offline." data-en="Currency scale and complete pagination tested offline.">Escala de moeda e paginação completa testadas offline.</span></td></tr>
+            <tr><th scope="row">Gemini API</th><td class="kind" data-pt="uso da API" data-en="API usage">uso da API</td><td><span class="status" data-pt="Experimental. Pede chave e projeto explícitos no ambiente." data-en="Experimental. Needs an explicit key and project in the environment.">Experimental. Pede chave e projeto explícitos no ambiente.</span></td></tr>
+            <tr><th scope="row">Claude, Gemini, Grok, Cursor, GLM (z.ai), OpenCode Go, Zen</th><td class="kind" data-pt="limite do plano" data-en="plan limit">limite do plano</td><td><span class="status" data-pt="Código presente. Cobertura e permissão de cada serviço ainda sem qualificação." data-en="Code present. Coverage and each service’s permission not yet qualified.">Código presente. Cobertura e permissão de cada serviço ainda sem qualificação.</span></td></tr>
+            <tr><th scope="row"><a href='https://codex-resets.com'>Codex Resets</a></th><td class="kind" data-pt="anúncios globais" data-en="global announcements">anúncios globais</td><td><span class="status" data-pt="Opcional e desligado por padrão. Resets do Codex para todos os planos pagos, publicados por um serviço de terceiros sem vínculo com a OpenAI. Nunca entram no anel." data-en="Optional and off by default. Codex resets for all paid plans, published by a third-party service not affiliated with OpenAI. Never part of the ring.">Opcional e desligado por padrão. Resets do Codex para todos os planos pagos, publicados por um serviço de terceiros sem vínculo com a OpenAI. Nunca entram no anel.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note" data-pt="Os termos de cada serviço continuam valendo, separados da licença MIT deste projeto." data-en="Each service’s terms still apply, separate from this project’s MIT license.">Os termos de cada serviço continuam valendo, separados da licença MIT deste projeto.</p>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="instalar" aria-labelledby="install-title">
+    <div class="sec-label"><b>§</b><span data-pt="Instalar" data-en="Install">Instalar</span></div>
+    <div class="install">
+      <div>
+        <h2 class="display" id="install-title" data-pt="Instalar" data-en="Install">Instalar</h2>
+        <p class="lede install-lede" data-pt="A instalação é local, a partir do código. O instalador confere as dependências, não baixa nada e não liga nenhum provedor." data-en="It installs locally, from source. The installer checks dependencies, downloads nothing and starts no provider.">A instalação é local, a partir do código. O instalador confere as dependências, não baixa nada e não liga nenhum provedor.</p>
+        <ul class="facts">
+          <li data-pt="Requer Python 3.12 ou mais novo, GTK 3, Ayatana AppIndicator, libnotify e flock." data-en="Needs Python 3.12 or newer, GTK 3, Ayatana AppIndicator, libnotify and flock.">Requer Python 3.12 ou mais novo, GTK 3, Ayatana AppIndicator, libnotify e flock.</li>
+          <li data-pt="Com <code>--dry-run</code> ele só mostra o plano." data-en="With <code>--dry-run</code> it only shows the plan.">Com <code>--dry-run</code> ele só mostra o plano.</li>
+          <li data-pt="Início automático só com <code>--enable-autostart</code>." data-en="Autostart only with <code>--enable-autostart</code>.">Início automático só com <code>--enable-autostart</code>.</li>
+          <li data-pt="Configurações e provedores ligados são mantidos. O comando de rollback aparece no fim." data-en="Settings and enabled providers are kept. The rollback command is printed at the end.">Configurações e provedores ligados são mantidos. O comando de rollback aparece no fim.</li>
+          <li data-pt="O comando antigo <code>codexbar-linux</code> continua funcionando." data-en="The old <code>codexbar-linux</code> command still works.">O comando antigo <code>codexbar-linux</code> continua funcionando.</li>
+        </ul>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar"><span>bash · Debian / Ubuntu</span><button type="button" class="copy" data-copy="install-cmds">copiar</button></div>
+<pre id="install-cmds"><span class="c" data-pt="# 1. pacotes do sistema" data-en="# 1. system packages"># 1. pacotes do sistema</span>
+<span data-cmd>sudo apt install python3-gi gir1.2-gtk-3.0 \</span>
+<span data-cmd>  gir1.2-ayatanaappindicator3-0.1 gir1.2-notify-0.7</span>
+
+<span class="c" data-pt="# 2. código" data-en="# 2. source"># 2. código</span>
+<span data-cmd>git clone https://github.com/caiolombello/quotalantern.git</span>
+<span data-cmd>cd quotalantern</span>
+
+<span class="c" data-pt="# 3. ver o plano, instalar e abrir" data-en="# 3. preview, install and open"># 3. ver o plano, instalar e abrir</span>
+<span data-cmd>bash install.sh --dry-run</span>
+<span data-cmd>bash install.sh</span>
+<span data-cmd>quotalantern</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="notas" aria-labelledby="notes-title">
+    <div class="sec-label"><b>§</b><span data-pt="Notas" data-en="Notes">Notas</span></div>
+    <div>
+      <div class="sec-head"><h2 class="display" id="notes-title" data-pt="Privacidade e limites" data-en="Privacy and limits">Privacidade e limites</h2></div>
+      <div class="notes">
+        <div>
+          <h3 data-pt="No seu computador" data-en="On your machine">No seu computador</h3>
+          <ul>
+            <li data-pt="<strong>Sem telemetria.</strong> O app só conversa com os serviços que você ligar." data-en="<strong>No telemetry.</strong> The app only talks to the services you turn on."><strong>Sem telemetria.</strong> O app só conversa com os serviços que você ligar.</li>
+            <li data-pt="<strong>Credenciais no lugar.</strong> Cada adaptador lê a credencial onde o provedor já guarda. O instalador não copia nenhuma." data-en="<strong>Credentials stay put.</strong> Each adapter reads its credential where the provider already keeps it. The installer copies none."><strong>Credenciais no lugar.</strong> Cada adaptador lê a credencial onde o provedor já guarda. O instalador não copia nenhuma.</li>
+            <li data-pt="<strong>OpenCode Go.</strong> Usa uma sessão OAuth própria, numa pasta privada. <em>Disconnect</em> apaga só essa sessão." data-en="<strong>OpenCode Go.</strong> Uses its own OAuth session in a private folder. <em>Disconnect</em> removes only that session."><strong>OpenCode Go.</strong> Usa uma sessão OAuth própria, numa pasta privada. <em>Disconnect</em> apaga só essa sessão.</li>
+            <li data-pt="<strong>Opcional.</strong> Os anúncios de reset do codex-resets.com só são consultados com a opção ligada, no máximo a cada 15 minutos, sem enviar dados da conta." data-en="<strong>Optional.</strong> Reset announcements from codex-resets.com are only checked when you turn them on, at most every 15 minutes, with no account data sent."><strong>Opcional.</strong> Os anúncios de reset do codex-resets.com só são consultados com a opção ligada, no máximo a cada 15 minutos, sem enviar dados da conta.</li>
+            <li data-pt="<strong>Arquivos privados.</strong> Configuração, estado e histórico são gravados só para o seu usuário." data-en="<strong>Private files.</strong> Settings, state and history are written for your user only."><strong>Arquivos privados.</strong> Configuração, estado e histórico são gravados só para o seu usuário.</li>
+            <li data-pt="<strong>Este site.</strong> Não usa cookies nem carrega nada de outro domínio." data-en="<strong>This site.</strong> No cookies, and nothing is loaded from another domain."><strong>Este site.</strong> Não usa cookies nem carrega nada de outro domínio.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-pt="Testado e pendente" data-en="Tested and pending">Testado e pendente</h3>
+          <ul>
+            <li data-pt="<strong>Testado.</strong> Suíte offline no CI com Python 3.12 e 3.14, sem rede nem arquivos reais." data-en="<strong>Tested.</strong> Offline suite in CI on Python 3.12 and 3.14, with no network or real files."><strong>Testado.</strong> Suíte offline no CI com Python 3.12 e 3.14, sem rede nem arquivos reais.</li>
+            <li data-pt="<strong>Testado.</strong> KDE Plasma no Wayland: janela, ícone, bandeja e notificação." data-en="<strong>Tested.</strong> KDE Plasma on Wayland: window, icon, tray and notification."><strong>Testado.</strong> KDE Plasma no Wayland: janela, ícone, bandeja e notificação.</li>
+            <li data-pt="<strong>Pendente.</strong> GNOME e telas HiDPI." data-en="<strong>Pending.</strong> GNOME and HiDPI screens."><strong>Pendente.</strong> GNOME e telas HiDPI.</li>
+            <li data-pt="<strong>Pendente.</strong> Revisão visual nativa pixel a pixel e tooltip ao passar o mouse." data-en="<strong>Pending.</strong> Pixel-level native visual review and the hover tooltip."><strong>Pendente.</strong> Revisão visual nativa pixel a pixel e tooltip ao passar o mouse.</li>
+            <li data-pt="<strong>Pendente.</strong> Permissão e cobertura de cada serviço." data-en="<strong>Pending.</strong> Each service’s permission and coverage."><strong>Pendente.</strong> Permissão e cobertura de cada serviço.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <p data-pt="QuotaLantern é um projeto independente sob licença MIT, inspirado no CodexBar de Peter Steinberger." data-en="QuotaLantern is an independent MIT-licensed project, inspired by Peter Steinberger’s CodexBar.">QuotaLantern é um projeto independente sob licença MIT, inspirado no CodexBar de Peter Steinberger.</p>
+    <nav aria-label="Rodapé" data-pt-aria="Rodapé" data-en-aria="Footer">
+      <a href="dashboard.html" data-pt="Tour do app" data-en="App tour">Tour do app</a>
+      <a href="icons.html" data-pt="Ícones" data-en="Icons">Ícones</a>
+      <a href="https://github.com/caiolombello/quotalantern/releases">Releases ↗</a>
+      <a href="https://github.com/caiolombello/quotalantern/blob/main/CHANGELOG.md">Changelog ↗</a>
+      <a href="https://github.com/caiolombello/quotalantern/blob/main/NOTICE">NOTICE ↗</a>
+      <a href="https://github.com/caiolombello/quotalantern/blob/main/ORIGIN.md" data-pt="Origem ↗" data-en="Origin ↗">Origem ↗</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

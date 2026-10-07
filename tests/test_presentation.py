@@ -120,3 +120,63 @@ class TrayUncertaintyTests(unittest.TestCase):
         self.assertEqual((reading.state, reading.percent), ("ok", 0))
         self.assertIn("Unconfirmed: Claude: stale", reading.description)
         self.assertIn("Codex", reading.label)
+
+
+class InterfaceCopyTests(unittest.TestCase):
+    """Badges, menu rows and labels keep uncertainty visible in words, not color."""
+    now = ReadingPresentationTests.now
+
+    def badge(self, **kwargs):
+        from codexbar_linux.presentation import reading_badge
+        return reading_badge(ProviderUsage(provider="codex", source="synthetic", **kwargs), now=self.now)
+
+    def test_badges_name_every_state(self):
+        self.assertEqual(self.badge(primary=UsageWindow(10), updated_at=self.now), ("ok", "✓ Fresh"))
+        self.assertEqual(self.badge(primary=UsageWindow(10), updated_at=self.now - timedelta(minutes=11)), ("neutral", "◷ Older"))
+        self.assertEqual(self.badge(primary=UsageWindow(10)), ("neutral", "? Unverified"))
+        self.assertEqual(self.badge(primary=UsageWindow(10), error="Stale cached response"), ("stale", "◷ Stale"))
+        self.assertEqual(self.badge(error="HTTP 500"), ("error", "! Error"))
+        self.assertEqual(self.badge(error="Not signed in — cookie missing"), ("neutral", "○ Not connected"))
+        self.assertEqual(self.badge(), ("neutral", "? Unknown"))
+        from codexbar_linux.presentation import reading_badge
+        spend = ProviderUsage(provider="openai-api", source="synthetic", balance_usd=1.0, updated_at=self.now)
+        self.assertEqual(reading_badge(spend, now=self.now), ("spend", "$ Spend"))
+        for _, text in (self.badge(), reading_badge(spend, now=self.now)):
+            self.assertNotIn("%", text)
+
+    def test_menu_rows_keep_every_description_line(self):
+        from codexbar_linux.presentation import menu_rows
+        usages = [ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(42, 300), updated_at=self.now),
+                  ProviderUsage(provider="claude", source="synthetic", primary=UsageWindow(5), error="Stale", updated_at=self.now)]
+        for reading in (tray_reading(usages, now=self.now), tray_reading([], now=self.now), tray_reading(usages[1:], now=self.now)):
+            rows = menu_rows(reading)
+            self.assertEqual(rows[0], reading.label)
+            joined = " · ".join(rows)
+            for line in reading.description.split("\n"):
+                self.assertIn(line, joined)
+        rows = menu_rows(tray_reading(usages, now=self.now))
+        self.assertIn("Source: synthetic · Updated: just now", rows[1])
+        self.assertIn("Unconfirmed: Claude: stale", rows)
+
+    def test_window_and_reset_labels(self):
+        from codexbar_linux.presentation import format_interval, format_next_reset, window_span
+        self.assertEqual([window_span(m) for m in (300, 10080, 1440, 45, None, 0, True)], ["5h", "7d", "1d", "45m", "", "", ""])
+        self.assertEqual(format_next_reset("codex Session | resets in 2h"), "Next reset: Codex Session — resets in 2h")
+        self.assertEqual(format_next_reset("unknown-id Weekly | 14:30"), "Next reset: unknown-id Weekly — 14:30")
+        self.assertEqual(format_next_reset(""), "")
+        self.assertEqual([format_interval(s) for s in (300, 3600, 90)], ["5 min", "1 h", "90 s"])
+
+    def test_tray_rows_color_only_confirmed_readings(self):
+        from tests.test_cost_presentation import CostPresentationTests
+        from codexbar_linux.config import AppConfig
+        builder = CostPresentationTests()
+        builder.build(ProviderUsage(provider="openai-api", source="synthetic", balance_usd=0))
+        tray = object.__new__(builder.tray_class)
+        tray._append_refresh_provider_item = lambda *args: None
+        tray._append_open_item = lambda *args: None
+        stale = tray._provider_item(ProviderUsage(provider="grok", source="synthetic", primary=UsageWindow(18), error="Stale cached response"), AppConfig())
+        self.assertTrue(stale.label.startswith("⚪"))
+        self.assertIn("◷ Stale", stale.label)
+        fresh = tray._provider_item(ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(18), updated_at=datetime.now(timezone.utc)), AppConfig())
+        self.assertTrue(fresh.label.startswith("🟢"))
+        self.assertNotIn("Stale", fresh.label)
