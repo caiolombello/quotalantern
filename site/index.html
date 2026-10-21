@@ -158,27 +158,39 @@
         <h2 class="display" id="install-title" data-pt="Instalar" data-en="Install">Instalar</h2>
         <p class="lede install-lede" data-pt="A instalação é local, a partir do código. O instalador confere as dependências, não baixa nada e não liga nenhum provedor." data-en="It installs locally, from source. The installer checks dependencies, downloads nothing and starts no provider.">A instalação é local, a partir do código. O instalador confere as dependências, não baixa nada e não liga nenhum provedor.</p>
         <ul class="facts">
-          <li data-pt="Requer Python 3.12 ou mais novo, GTK 3, Ayatana AppIndicator, libnotify e flock." data-en="Needs Python 3.12 or newer, GTK 3, Ayatana AppIndicator, libnotify and flock.">Requer Python 3.12 ou mais novo, GTK 3, Ayatana AppIndicator, libnotify e flock.</li>
+          <li data-pt="Requer Python 3.12 ou mais novo, GTK 3, Ayatana AppIndicator ou AppIndicator3, libnotify e Bash." data-en="Needs Python 3.12 or newer, GTK 3, Ayatana AppIndicator or AppIndicator3, libnotify and Bash.">Requer Python 3.12 ou mais novo, GTK 3, Ayatana AppIndicator ou AppIndicator3, libnotify e Bash.</li>
+          <li data-pt="No Fedora, use os pacotes <code>dnf</code> abaixo. No GNOME, ative uma extensão AppIndicator; o Plasma já tem suporte à bandeja." data-en="On Fedora, use the <code>dnf</code> packages below. On GNOME, enable an AppIndicator extension; Plasma already supports the tray.">No Fedora, use os pacotes <code>dnf</code> abaixo. No GNOME, ative uma extensão AppIndicator; o Plasma já tem suporte à bandeja.</li>
           <li data-pt="Com <code>--dry-run</code> ele só mostra o plano." data-en="With <code>--dry-run</code> it only shows the plan.">Com <code>--dry-run</code> ele só mostra o plano.</li>
           <li data-pt="Início automático só com <code>--enable-autostart</code>." data-en="Autostart only with <code>--enable-autostart</code>.">Início automático só com <code>--enable-autostart</code>.</li>
+          <li data-pt="O comando abre a bandeja e libera o terminal. Para diagnóstico, use <code>quotalantern --foreground</code>." data-en="The command opens the tray and frees the terminal. For debugging, use <code>quotalantern --foreground</code>.">O comando abre a bandeja e libera o terminal. Para diagnóstico, use <code>quotalantern --foreground</code>.</li>
           <li data-pt="Configurações e provedores ligados são mantidos. O comando de rollback aparece no fim." data-en="Settings and enabled providers are kept. The rollback command is printed at the end.">Configurações e provedores ligados são mantidos. O comando de rollback aparece no fim.</li>
           <li data-pt="O comando antigo <code>codexbar-linux</code> continua funcionando." data-en="The old <code>codexbar-linux</code> command still works.">O comando antigo <code>codexbar-linux</code> continua funcionando.</li>
         </ul>
       </div>
+      <div>
       <div class="terminal">
-        <div class="terminal-bar"><span>bash · Debian / Ubuntu</span><button type="button" class="copy" data-copy="install-cmds">copiar</button></div>
-<pre id="install-cmds"><span class="c" data-pt="# 1. pacotes do sistema" data-en="# 1. system packages"># 1. pacotes do sistema</span>
+        <div class="terminal-bar"><span>Fedora</span><button type="button" class="copy" data-copy="fedora-cmds">copiar</button></div>
+<pre id="fedora-cmds"><span data-cmd>sudo dnf install python3-gobject gtk3 \</span>
+<span data-cmd>  libayatana-appindicator-gtk3 libnotify</span></pre>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar"><span>Debian / Ubuntu</span><button type="button" class="copy" data-copy="debian-cmds">copiar</button></div>
+<pre id="debian-cmds">
 <span data-cmd>sudo apt install python3-gi gir1.2-gtk-3.0 \</span>
-<span data-cmd>  gir1.2-ayatanaappindicator3-0.1 gir1.2-notify-0.7</span>
-
-<span class="c" data-pt="# 2. código" data-en="# 2. source"># 2. código</span>
+<span data-cmd>  gir1.2-ayatanaappindicator3-0.1 gir1.2-notify-0.7</span></pre>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar"><span data-pt="Todas as distribuições" data-en="All distributions">Todas as distribuições</span><button type="button" class="copy" data-copy="install-cmds">copiar</button></div>
+<pre id="install-cmds"><span class="c" data-pt="# código" data-en="# source"># código</span>
 <span data-cmd>git clone https://github.com/caiolombello/quotalantern.git</span>
 <span data-cmd>cd quotalantern</span>
 
-<span class="c" data-pt="# 3. ver o plano, instalar e abrir" data-en="# 3. preview, install and open"># 3. ver o plano, instalar e abrir</span>
+<span class="c" data-pt="# ver o plano, instalar e abrir" data-en="# preview, install and open"># ver o plano, instalar e abrir</span>
 <span data-cmd>bash install.sh --dry-run</span>
 <span data-cmd>bash install.sh</span>
-<span data-cmd>quotalantern</span></pre>
+<span data-cmd>~/.local/bin/quotalantern --check</span>
+<span data-cmd>~/.local/bin/quotalantern</span></pre>
+      </div>
       </div>
     </div>
   </section>

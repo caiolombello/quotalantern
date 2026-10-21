@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from .gtk_runtime import runtime_status
 from .desktop import (
     current_desktop,
     detect_desktop_theme,
@@ -18,30 +19,7 @@ from .desktop import (
 
 
 def _gi_status() -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "gtk3": False,
-        "ayatana_appindicator": False,
-        "notify": False,
-    }
-    try:
-        import gi
-
-        gi.require_version("Gtk", "3.0")
-        gi.require_version("AyatanaAppIndicator3", "0.1")
-        gi.require_version("Notify", "0.7")
-        from gi.repository import AyatanaAppIndicator3, Gtk, Notify  # noqa: F401
-
-        result.update(
-            {
-                "gtk3": True,
-                "gtk_version": f"{Gtk.MAJOR_VERSION}.{Gtk.MINOR_VERSION}.{Gtk.MICRO_VERSION}",
-                "ayatana_appindicator": True,
-                "notify": True,
-            }
-        )
-    except (ImportError, ValueError) as exc:
-        result["error"] = f"{type(exc).__name__}: {exc}"
-    return result
+    return runtime_status()
 
 
 def platform_report() -> dict[str, Any]:
@@ -70,7 +48,7 @@ def platform_report() -> dict[str, Any]:
     }
     required = (
         gi_status["gtk3"],
-        gi_status["ayatana_appindicator"],
+        gi_status["appindicator"],
         gi_status["notify"],
         report["commands"]["xdg-open"],
     )

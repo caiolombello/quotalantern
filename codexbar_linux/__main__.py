@@ -13,7 +13,7 @@ def _json_output() -> None:
     print(json.dumps(snapshot(fetch_all(enabled=cfg.enabled_providers), None), sort_keys=True))
 
 
-def main() -> None:
+def argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", action="store_true", help="Print one usage snapshot as JSON and exit")
     parser.add_argument(
@@ -22,7 +22,12 @@ def main() -> None:
         help="Check local desktop integration without reading credentials or using the network",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable debug logging")
-    args = parser.parse_args()
+    parser.add_argument("--foreground", action="store_true", help="Keep the installed tray attached to the terminal for debugging")
+    return parser
+
+
+def main() -> None:
+    args = argument_parser().parse_args()
 
     if args.check:
         from .diagnostics import platform_report

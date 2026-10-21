@@ -1,7 +1,7 @@
 # QuotaLantern
 
 AI usage, quotas, resets and costs in your Linux desktop tray. Python + GTK 3,
-Ayatana AppIndicator and libnotify. Independent project with A/Facho identity.
+Ayatana AppIndicator (or AppIndicator3) and libnotify. Independent project with A/Facho identity.
 
 **v0.1.0-alpha.4 — alerts for announced Codex resets and reset hints.**
 Installed and run on KDE Plasma/Wayland: tray item registered, offline check
@@ -16,8 +16,29 @@ remain pending. Web examples use synthetic data.
 ## Install and verify
 
 Requires existing Python 3.12+ with system GI bindings for GTK 3, Ayatana
-AppIndicator and Notify, plus Bash and util-linux flock. The installer checks
+AppIndicator or AppIndicator3, and Notify, plus Bash. The installer checks
 these requirements; it downloads nothing and never starts providers.
+
+Install system dependencies for your distribution first:
+
+Fedora (including KDE Plasma):
+
+```sh
+sudo dnf install python3-gobject gtk3 libayatana-appindicator-gtk3 libnotify
+```
+
+An existing Fedora `libappindicator-gtk3` installation is also supported; you
+do not need to replace it with Ayatana. The installer and `--check` report the
+selected backend. Package contents: [Ayatana](https://packages.fedoraproject.org/pkgs/libayatana-appindicator/libayatana-appindicator-gtk3/fedora-44.html),
+[AppIndicator3](https://packages.fedoraproject.org/pkgs/libappindicator/libappindicator-gtk3/fedora-44.html).
+
+Debian / Ubuntu:
+
+```sh
+sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 gir1.2-notify-0.7
+```
+
+Then, from the cloned checkout:
 
 ```sh
 bash install.sh --dry-run
@@ -26,8 +47,23 @@ quotalantern --check
 quotalantern
 ```
 
-Autostart is opt-in with `bash install.sh --enable-autostart`; existing autostart
-options are preserved. The installed `codexbar-linux` command remains an alias.
+If `~/.local/bin` is not in your PATH, use `~/.local/bin/quotalantern`.
+The command opens the tray independently and returns the terminal; closing the
+terminal leaves the app running. Launching it again keeps the existing instance.
+Use `quotalantern --foreground` for terminal debugging; `--check`, `--json` and
+`--help` remain synchronous. Application logs rotate in
+`~/.local/share/codexbar-linux/log/codexbar-linux.log`; early startup errors go
+to the private `launcher.log` in the same directory. Quit from the tray menu.
+
+Use Python with access to the distribution's GI packages; an isolated virtualenv
+without system packages cannot see them. On GNOME, tray icons additionally need
+an enabled AppIndicator extension (Fedora package `gnome-shell-extension-appindicator`).
+KDE Plasma supplies the tray host directly.
+
+Autostart is opt-in with `bash install.sh --enable-autostart`; this explicitly
+re-enables a disabled entry while preserving its other options. Without that
+flag, existing autostart preferences are preserved. Installation also adds a QuotaLantern entry in the application
+menu; no terminal or manual `&` is needed. The installed `codexbar-linux` command remains an alias.
 Settings and data stay in `~/.config/codexbar-linux` and
 `~/.local/share/codexbar-linux`. Versions and backups stay in that data root;
 credentials are used in their existing provider-owned storage and never copied

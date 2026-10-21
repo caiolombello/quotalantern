@@ -1,6 +1,6 @@
 """Source-only installer: no downloads, provider calls or credential copies."""
 from pathlib import Path
-import argparse,hashlib,json,os,shutil,subprocess,sys,time
+import argparse,hashlib,json,os,platform,shutil,subprocess,sys,time
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--dry-run',action='store_true')
@@ -11,15 +11,30 @@ home=Path.home()
 base=home/'.local/share/codexbar-linux'
 build=json.loads((source/'BUILD.json').read_text())
 assert sys.version_info>=(3,12),'Python 3.12 or newer is required'
-assert shutil.which('flock'),'Install util-linux flock from your distribution'
 python=base/'venv/bin/python'
 if not python.exists():python=Path(sys.executable)
-probe="import gi\nfor n,v in [('Gtk','3.0'),('AyatanaAppIndicator3','0.1'),('Notify','0.7')]: gi.require_version(n,v); getattr(__import__('gi.repository',fromlist=[n]),n)"
-subprocess.run([str(python),'-c',probe],check=True)
 assert all(hashlib.sha256((source/p).read_bytes()).hexdigest()==h for p,h in build['file_sha256'].items()),'Source hash differs from BUILD.json'
+probe="""import json,sys
+from codexbar_linux.gtk_runtime import runtime_status
+status=runtime_status()
+print(json.dumps(status))
+sys.exit(0 if all(status[k] for k in ('gtk3','appindicator','notify')) else 1)
+"""
+checked=subprocess.run([str(python),'-c',probe],cwd=source,
+                       env={**os.environ,'PYTHONNOUSERSITE':'1'},capture_output=True,text=True)
+if checked.returncode:
+    try: distro=platform.freedesktop_os_release()
+    except OSError: distro={}
+    family={distro.get('ID',''),*distro.get('ID_LIKE','').split()}
+    fedora='sudo dnf install python3-gobject gtk3 libayatana-appindicator-gtk3 libnotify'
+    debian='sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 gir1.2-notify-0.7'
+    hint=fedora if 'fedora' in family else debian if family & {'debian','ubuntu'} else f'Fedora: {fedora}\nDebian/Ubuntu: {debian}'
+    sys.exit(f'Desktop dependencies unavailable for {python}.\n{checked.stdout.strip()}\n{checked.stderr.strip()}\nInstall system packages, then rerun install.sh:\n{hint}\nThe selected Python must have access to system GI bindings.')
+runtime=json.loads(checked.stdout)
 release=base/'releases'/(build['version']+'-'+build['content_sha256'][:12])
 print('QuotaLantern',build['version'])
 print('Runtime:',python)
+print('Tray backend:',runtime['appindicator_backend'])
 print('Version directory:',release)
 print('Data and credentials stay in their existing storage. Providers are not started.')
 if args.dry_run:sys.exit(0)
@@ -71,8 +86,7 @@ PYTHON=PYTHON_LITERAL
 export PYTHONPATH="${RELEASE_DIR}:${PYTHONPATH:-}"
 export PYTHONNOUSERSITE=1
 cd "$RELEASE_DIR"
-case "${1:-}" in --check|--help|-h) exec "$PYTHON" -m codexbar_linux "$@" ;; esac
-exec /usr/bin/flock -n "$HOME/.local/share/codexbar-linux/.instance.lock" "$PYTHON" -m codexbar_linux "$@"
+exec "$PYTHON" -m codexbar_linux.launcher "$@"
 '''
 import shlex
 wrapper=wrapper.replace('RELEASE_LITERAL',shlex.quote(str(release))).replace('PYTHON_LITERAL',shlex.quote(str(python)))
@@ -98,13 +112,21 @@ else:write(desktop,entry,0o644)
 icon.parent.mkdir(parents=True,exist_ok=True)
 shutil.copyfile(release/'assets/icon.svg',icon);icon.chmod(0o644)
 if autostart.exists():
-    text='\n'.join('Name=QuotaLantern' if line.startswith('Name=') else line for line in autostart.read_text().splitlines())+'\n'
+    replacements={'Name':'QuotaLantern'}
+    if args.enable_autostart:replacements.update({'Hidden':'false','X-GNOME-Autostart-enabled':'true'})
+    lines=[]
+    for line in autostart.read_text().splitlines():
+        key,separator,value=line.partition('=')
+        lines.append(key.strip()+'='+replacements[key.strip()] if separator and key.strip() in replacements else line)
+    text='\n'.join(lines)+'\n'
     write(autostart,text,autostart.stat().st_mode&0o777)
 elif args.enable_autostart:write(autostart,entry,0o600)
 config=home/'.config/codexbar-linux/config.json'
 if not config.exists():
     config.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     write(config,json.dumps({'enabled_providers':['codex'],'hide_offline':True,'open_dashboard_on_start':False},indent=2)+'\n',0o600)
-print('Check offline: quotalantern --check')
-print('Open: quotalantern')
+command='quotalantern' if str(alias.parent) in os.get_exec_path() else str(alias)
+print('Check offline:',command,'--check')
+print('Open:',command)
+if command != 'quotalantern':print('For the short command, add',alias.parent,'to PATH or open a new login session.')
 print('Rollback after closing the app: python3',backup/'rollback.py')

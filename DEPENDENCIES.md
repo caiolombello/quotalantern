@@ -10,9 +10,9 @@ Install system components through your distribution's official packages.
 | Python | Interpreter and standard library, PSF license family and component notices |
 | PyGObject | GI bindings; LGPL-2.1-or-later and included component notices |
 | GTK/GDK, GLib/GIO, Pango, GdkPixbuf | System GUI/runtime components; LGPL families plus package-specific notices |
-| Ayatana AppIndicator | System StatusNotifier integration; retain the distribution's LGPL/component notices |
+| Ayatana AppIndicator or AppIndicator3 | System StatusNotifier integration; retain the distribution's LGPL/component notices |
 | libnotify | System desktop notifications, LGPL-2.1-or-later |
-| Bash / util-linux flock | Local launcher and instance locking; system packages with their own GPL/component notices |
+| Bash | Local launcher; system package with its own GPL/component notices; instance locking uses Python's system flock binding |
 | libcanberra, kreadconfig, gsettings, busctl, xdg-open | Optional system sound/theme/desktop helpers; package licenses remain applicable |
 | CodexBar CLI | Legacy helper retained in source, not in the active native provider registry; upstream MIT, Peter Steinberger |
 | Codex Resets (codex-resets.com) | Optional third-party public API for global Codex reset announcements; free, no key, the site asks for a credit link where its data is shown. Off by default; not affiliated with OpenAI |
