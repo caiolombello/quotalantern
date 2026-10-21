@@ -1,3 +1,5 @@
 # Pure-Python dependencies only.
-# PyGObject and Notify come from the system python3-gi package.
-# Install with: sudo apt install python3-gi gir1.2-appindicator3-0.1 gir1.2-notify-0.7
+# PyGObject, GTK 3, AppIndicator and Notify come from distribution packages.
+# Fedora: sudo dnf install python3-gobject gtk3 libayatana-appindicator-gtk3 libnotify
+# Debian/Ubuntu: sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 gir1.2-notify-0.7
+# An existing AppIndicator3 binding (Fedora libappindicator-gtk3) also works.

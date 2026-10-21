@@ -1,4 +1,4 @@
-"""GTK tray icon using the cross-desktop Ayatana AppIndicator protocol.
+"""GTK tray icon using the cross-desktop AppIndicator protocol.
 
 Plasma consumes it through StatusNotifier over D-Bus; GNOME consumes it through
 its AppIndicator host. Rich UI lives in the Dashboard window.
@@ -16,10 +16,12 @@ from typing import Callable, Optional
 import gi
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("AyatanaAppIndicator3", "0.1")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import AyatanaAppIndicator3 as AppIndicator3
 from gi.repository import GdkPixbuf, GLib, Gtk
+
+from .gtk_runtime import load_appindicator
+
+_, AppIndicator3 = load_appindicator()
 
 from .config import AppConfig
 from .core.models import ProviderUsage, UsageWindow

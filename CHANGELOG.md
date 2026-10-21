@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Fedora: support the system AppIndicator3 binding as well as Ayatana, report
+  desktop dependencies separately, and show distribution-specific installation
+  commands. Verify source integrity before loading the dependency probe.
+- Installed launchers open the tray independently of the terminal, keep a
+  single instance and retain private startup diagnostics. `--foreground` keeps
+  terminal debugging available; `--check`, `--json` and `--help` stay synchronous.
+  Login startup remains opt-in with `install.sh --enable-autostart`.
+
 ## v0.1.0-alpha.4
 
 - Codex Resets: announced resets that are not confirmed yet, and hints that

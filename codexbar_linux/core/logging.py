@@ -32,7 +32,7 @@ def setup_logging(
 ) -> logging.Logger:
     """Configure root logger for codexbar-linux with rotation.
 
-    - Console handler: stderr, INFO (or DEBUG if verbose)
+    - Foreground console handler: stderr, INFO (or DEBUG if verbose)
     - File handler: rotating, DEBUG level
     """
     root = logging.getLogger("codexbar-linux")
@@ -51,7 +51,8 @@ def setup_logging(
     console = logging.StreamHandler(sys.stderr)
     console.setLevel(logging.DEBUG if verbose else logging.INFO)
     console.setFormatter(fmt)
-    root.addHandler(console)
+    if os.environ.get("QUOTALANTERN_BACKGROUND") != "1":
+        root.addHandler(console)
 
     # Rotating file
     directory = log_dir or LOG_DIR
