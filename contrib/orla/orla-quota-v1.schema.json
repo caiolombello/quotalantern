@@ -1,0 +1,132 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "producer",
+    "producerVersion",
+    "generatedAtMs",
+    "expiresAtMs",
+    "intervalSeconds",
+    "providers"
+  ],
+  "properties": {
+    "formatVersion": {
+      "const": "0.1-experimental"
+    },
+    "producer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^(?:[a-z][a-z0-9-]{0,63})$"
+    },
+    "producerVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "pattern": "^(?:[A-Za-z0-9.+_-]{1,40})$"
+    },
+    "generatedAtMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "expiresAtMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "intervalSeconds": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 3600
+    },
+    "providers": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "state",
+          "observedAtMs",
+          "windows"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?)$"
+          },
+          "state": {
+            "enum": [
+              "ready",
+              "stale",
+              "unknown",
+              "unavailable"
+            ]
+          },
+          "observedAtMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "windows": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key",
+                "usedPercent",
+                "windowMinutes",
+                "resetAtMs"
+              ],
+              "properties": {
+                "key": {
+                  "enum": [
+                    "primary",
+                    "secondary",
+                    "tertiary"
+                  ]
+                },
+                "usedPercent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "windowMinutes": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 525600
+                },
+                "resetAtMs": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Experimental. Normative stdlib parser also checks strict UTF-8, 65536 bytes, depth <=8, duplicate keys, nonfinite numbers, integer tokens, unique provider ids, window keys in primary/secondary/tertiary order, producer == selected namespace and expiresAtMs == generatedAtMs + 3000 * intervalSeconds. No account, provider message, URL or monetary field is accepted."
+}

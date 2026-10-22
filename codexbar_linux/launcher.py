@@ -61,7 +61,7 @@ def main() -> int:
     from .__main__ import argument_parser, main as application_main
 
     args = argument_parser().parse_args()
-    if args.check or args.json:
+    if args.check or args.json or args.orla_export:
         application_main()
         return 0
     if not args.foreground:

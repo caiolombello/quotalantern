@@ -1,0 +1,15 @@
+{
+  "formatVersion": "0.1-experimental",
+  "id": "io.github.caiolombello.quotalantern",
+  "name": "QuotaLantern",
+  "description": "AI subscription quota usage explicitly exported by QuotaLantern, without accounts or costs.",
+  "author": "QuotaLantern contributors",
+  "license": "MIT",
+  "version": "0.1.0",
+  "origin": "https://github.com/caiolombello/quotalantern",
+  "renderer": "quota-usage",
+  "source": {
+    "namespace": "quotalantern",
+    "formatVersion": "0.1-experimental"
+  }
+}

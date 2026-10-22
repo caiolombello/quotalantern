@@ -114,6 +114,44 @@ announced (scheduled, not yet confirmed) reset notifies once, including one
 already pending when you turn the feature on. Hints that a reset may come are
 AI forecasts; they also notify unless you turn off **Alert on reset hints**.
 
+## Optional Orla quota export (experimental)
+
+[Orla Desktop](https://github.com/caiolombello/orla-desktop) can show subscription
+quota in its dock through a passive file that QuotaLantern writes. Off by default;
+installing QuotaLantern or the Orla package in `contrib/orla/quotalantern.orla-addon.json`
+enables neither the export nor Orla's reading. Orla activation is a separate action
+in its settings.
+
+```sh
+quotalantern --orla-export enable
+quotalantern --orla-export status
+quotalantern --orla-export disable
+```
+
+These commands manage consent only: they never fetch providers or publish.
+`status` prints `enabled`, `exportPresent` and `exportBytes`. Enable removes any
+old export and waits for the next refresh of the running tray; it never presents
+an earlier reading as new. Disable succeeds only after consent is off and the
+export removed; later refreshes cannot publish until you enable it again.
+
+Consent is a strict private file, `$XDG_CONFIG_HOME/quotalantern/exports/orla.json`
+(`{"formatVersion":"0.1-experimental","enabled":true}`); missing, malformed or
+unreadable consent counts as off. It is separate from `config.json`, so Settings
+never rewrites it. After each genuine refresh the tray replaces
+`$XDG_STATE_HOME/quotalantern/exports/orla-quota-v1.json` atomically (directories
+`0700`, files `0600`; symlinks and shared or special files are refused). A relative
+or unset XDG variable falls back to `~/.config` and `~/.local/state`.
+
+The export lists enabled subscription providers only (API cost adapters are left
+out) with a finite state (`ready`, `stale`, `unknown`, `unavailable`), the original
+observation time and up to three windows: percent used, window length and reset
+time. Accounts, sign-in methods, provider messages, reset descriptions, credits,
+costs and balances are never written. Percentages are kept only for a recent
+successful reading; a failed refresh, an old or future observation, or an invalid
+value leaves them unknown, never zero. The lease is three refresh intervals
+(10 s to 1 h). Orla ages readings on its own side too; bytes already read cannot
+be retracted. Disable the export before rolling back to a version without it.
+
 ## Offline validation
 
 ```sh

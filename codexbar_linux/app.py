@@ -22,6 +22,7 @@ from .core.logging import install_thread_exception_hook, setup_logging
 from .core.models import ProviderUsage
 from .desktop import detect_desktop_theme
 from .icons import ensure_icons
+from . import orla_export
 from .state import append_history, load_state, save_state, snapshot
 from .tray import TrayApp
 from .ui_common import display_name
@@ -139,14 +140,18 @@ class CodexBarLinuxApp:
     def _refresh_locked(self) -> None:
         self._check_codex_resets()
         usages: list[ProviderUsage] = []
+        fetched = False
         try:
             usages = fetch_all(enabled=self.config.enabled_providers)
+            fetched = True
         except Exception as exc:
             logger.error("Failed to fetch usage: %s", exc)
 
         self._usages = usages
         data = snapshot(usages, None)
         append_history(data)
+        if fetched:
+            self._publish_orla(usages)
         next_reset = self._next_reset(usages)
         updated_at = datetime.now(timezone.utc)
         GLib.idle_add(self._update_ui, usages, next_reset, updated_at)
@@ -167,6 +172,7 @@ class CodexBarLinuxApp:
             self._replace_usage(usage)
             data = snapshot(self._usages, None)
             append_history(data)
+            self._publish_orla(self._usages)
             next_reset = self._next_reset(self._usages)
             updated_at = datetime.now(timezone.utc)
             GLib.idle_add(self._update_ui, self._usages, next_reset, updated_at)
@@ -174,6 +180,15 @@ class CodexBarLinuxApp:
             save_state(self._state)
         finally:
             self._refresh_lock.release()
+
+    def _publish_orla(self, usages: list[ProviderUsage]) -> None:
+        """Opt-in Orla export after a genuine refresh; failures never stop the tray."""
+        try:
+            orla_export.publish(usages, interval_seconds=self.config.refresh_interval_seconds)
+        except orla_export.ExportError as exc:
+            logger.warning("Orla export not published: %s", exc.code)
+        except Exception:
+            logger.exception("Orla export failed unexpectedly")
 
     def _replace_usage(self, usage: ProviderUsage) -> None:
         for index, current in enumerate(self._usages):
