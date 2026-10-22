@@ -59,7 +59,8 @@ class LauncherTests(unittest.TestCase):
     def test_json_and_check_stay_synchronous_regardless_of_argument_order(self):
         from codexbar_linux import launcher
 
-        for arguments in (["--verbose", "--check"], ["--json", "--verbose"], ["--foreground"]):
+        for arguments in (["--verbose", "--check"], ["--json", "--verbose"], ["--foreground"],
+                          ["--orla-export", "status"]):
             with self.subTest(arguments=arguments), \
                  mock.patch("sys.argv", ["quotalantern", *arguments]), \
                  mock.patch.object(launcher, "launch_background") as background, \

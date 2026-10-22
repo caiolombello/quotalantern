@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Optional Orla Desktop quota export, off by default: `--orla-export
+  enable|disable|status` manages a separate consent file, and each genuine
+  refresh then publishes subscription quota windows (percent, length, reset)
+  for Orla's dock. Accounts, provider messages, costs and balances are never
+  exported. Package and schema in `contrib/orla/`.
 - Fedora: support the system AppIndicator3 binding as well as Ayatana, report
   desktop dependencies separately, and show distribution-specific installation
   commands. Verify source integrity before loading the dependency probe.
