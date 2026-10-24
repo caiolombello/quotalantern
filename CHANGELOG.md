@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.0-alpha.5
 
 - Tray ring: with two or more connected subscription providers the ring is
   split into one segment per provider, each filled to and colored by its own
@@ -8,7 +8,7 @@
   instead of a fully red ring that read as "everything is at the limit".
   Unknown and stale providers keep a neutral dotted/dashed segment; not
   connected adapters stay out. One provider, or no confirmed reading, keeps
-  the previous single ring. The title and menu list every segment, and the
+  the previous single ring. The icon title lists every segment, and the
   Overview header ring mirrors the tray.
 - Tray: saving Settings re-colors the ring with the new warning/critical
   levels immediately instead of on the next minute tick, and the panel label

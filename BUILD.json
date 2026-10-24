@@ -1,7 +1,7 @@
 {
   "name": "QuotaLantern",
-  "version": "0.1.0-alpha.4",
-  "content_sha256": "02904a3387fce28e2476f3cdf703d03c5bd8ff2f11dc615115056312ced1c434",
+  "version": "0.1.0-alpha.5",
+  "content_sha256": "c4202af20ba1c9f8b277eeb06e8b550607030ad4797c27b3451f10bbdd08ceb2",
   "source_head": "c626a05bb38881d1d5fe613dce3819cb809b0d88",
   "scope": "reviewed isolated WIP candidate; not original HEAD-only",
   "selected_logo": "A/Facho",
@@ -14,7 +14,7 @@
     "codexbar_linux/icons.py": "a5939d89fa835919f5c9aa83aa48079f25f1bea59830aaf20768221b3d663667",
     "codexbar_linux/settings_dialog.py": "e486681b1cc03e21efb8fb4cdc8a7d6642a0974097781834542ec86ff71241c4",
     "codexbar_linux/config.py": "1055c906410a9f5a39844278c1363a9cfd84dda2b7ddb12875673b5472f199f6",
-    "codexbar_linux/tray.py": "b18f27b5c52d73b8bd8186254c170ce3ce2e367660c9cb0ea2fd984efcb49a82",
+    "codexbar_linux/tray.py": "f78eb80fa30bbab40e7f462d957e2ab8a1c4f7c3ec6b06c91cc16af3ad28785f",
     "codexbar_linux/dashboard.py": "4759fc5249c2b5dc7ba7ef4d25f698c0dc108453ec76d74f5600418e6fea3be0",
     "codexbar_linux/__init__.py": "924bef79097b243bc1d66230597ba48e2ec00c2a2ea7a3e004c43a266fb288ba",
     "codexbar_linux/ui_common.py": "bd47b8557b2967e0e62455ad0e37ed7b75f919f4394d2c117b7013b58e4443a7",
