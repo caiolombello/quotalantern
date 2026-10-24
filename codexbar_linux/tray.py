@@ -39,12 +39,13 @@ from .presentation import (
     window_row,
 )
 from .codex_resets import SITE_URL
-from .icons import ensure_gauge_icon, gauge_svg
+from .icons import bar_svg, ensure_gauge_icon, gauge_svg
 
 logger = logging.getLogger("codexbar-linux")
 
-# Menu rows carry a small ring (exported to the tray host as PNG icon-data);
-# hosts scale it to their menu icon size, so render at 2x for HiDPI.
+# Menu rows carry a small meter, ring or bar per Settings (exported to the
+# tray host as PNG icon-data); hosts scale it to their menu icon size, so
+# render at 2x for HiDPI.
 MENU_ICON_PIXELS = 32
 _GAUGE_STATE = {"ok": "ok", "warn": "warning", "crit": "critical"}
 
@@ -196,18 +197,19 @@ class TrayApp:
             parts.append(f"Last check {ui.human_age(age)}")
         return "  ·  ".join(parts)
 
-    def _ring_pixbuf(self, pct, state):
-        """Small ring as a pixbuf, or None when the SVG loader is unavailable."""
+    def _meter_pixbuf(self, pct, state, style="gauge"):
+        """Small ring or bar as a pixbuf, or None when the SVG loader is unavailable."""
         theme = getattr(self, "icon_theme", "dark")
-        cache = self.__dict__.setdefault("_ring_pixbufs", {})
-        key = (pct, state, theme)
+        cache = self.__dict__.setdefault("_meter_pixbufs", {})
+        key = (pct, state, theme, style)
         if key not in cache:
             if len(cache) > 256:
                 cache.clear()
             try:
+                svg = bar_svg(pct, state, theme) if style == "bars" else gauge_svg(pct, state, theme, style="plain")
                 loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
                 loader.set_size(MENU_ICON_PIXELS, MENU_ICON_PIXELS)
-                loader.write(gauge_svg(pct, state, theme, style="plain").encode("utf-8"))
+                loader.write(svg.encode("utf-8"))
                 loader.close()
                 cache[key] = loader.get_pixbuf()
             except Exception:
@@ -215,11 +217,11 @@ class TrayApp:
                 cache[key] = None
         return cache[key]
 
-    def _ring_item(self, label: str, ring, marker: str = "") -> tuple[Gtk.MenuItem, bool]:
-        """(item, has_icon): a ring icon row, or plain text with a marker when icons are unavailable."""
-        pixbuf = self._ring_pixbuf(*ring) if ring else None
-        if ring is None and self._ring_pixbuf(None, "unknown") is not None:
-            marker = ""  # icons work: rows without a ring (costs, offline) stay unmarked
+    def _meter_item(self, label: str, ring, style: str, marker: str = "") -> tuple[Gtk.MenuItem, bool]:
+        """(item, has_icon): a meter icon row, or plain text with a marker when icons are unavailable."""
+        pixbuf = self._meter_pixbuf(*ring, style) if ring else None
+        if ring is None and self._meter_pixbuf(None, "unknown", style) is not None:
+            marker = ""  # icons work: rows without a meter (costs, offline) stay unmarked
         if pixbuf is not None:
             # Properties at construction: the setters are deprecated, the
             # widget itself is what DBusMenu exports as icon-data.
@@ -266,7 +268,7 @@ class TrayApp:
             label = f"{name} — quota unknown"
             ring = (None, "unknown")
 
-        item, _ = self._ring_item(label, ring, emoji)
+        item, _ = self._meter_item(label, ring, cfg.meter_style, emoji)
         submenu = Gtk.Menu()
 
         if usage.error:
@@ -304,7 +306,7 @@ class TrayApp:
                     ring = (window.used_percent, _GAUGE_STATE[window_level])
                 else:
                     ring = self._neutral_ring(badge)
-                submenu.append(self._window_item(window_name, window, ring))
+                submenu.append(self._window_item(window_name, window, ring, cfg.meter_style))
 
         for detail in detail_rows(usage):
             self._plain_row(submenu, detail, sensitive=False)
@@ -341,8 +343,8 @@ class TrayApp:
             self._dashboard.set_codex_resets(snapshot)
         return False
 
-    def _window_item(self, name: str, window: UsageWindow, ring=None) -> Gtk.MenuItem:
-        item, has_icon = self._ring_item(window_row(name, window), ring)
+    def _window_item(self, name: str, window: UsageWindow, ring=None, style: str = "gauge") -> Gtk.MenuItem:
+        item, has_icon = self._meter_item(window_row(name, window), ring, style)
         if has_icon:
             # Hosts grey out icons of disabled rows; keep the ring in color and
             # let the row open the Overview for the full picture.

@@ -392,7 +392,7 @@ class TrayMenuIconTests(unittest.TestCase):
         tray._append_refresh_provider_item = lambda *args: None
         tray._append_open_item = lambda *args: None
         tray.icon_theme = "dark"
-        tray._ring_pixbuf = lambda pct, state: ("pixbuf", pct, state)
+        tray._meter_pixbuf = lambda pct, state, style="gauge": ("pixbuf", pct, state) if style == "gauge" else ("bar", pct, state)
         tray.open_dashboard = mock.Mock()
         return tray, gtk, ImageMenuItem
 
@@ -437,3 +437,52 @@ def types_namespace(base=None, **extra):
     values = dict(vars(base)) if base is not None else {}
     values.update(extra)
     return types.SimpleNamespace(**values)
+
+
+class MeterStyleTests(unittest.TestCase):
+    """Menu meters are a user choice: ring (default) or bar, same states and colors."""
+    ns = {"s": "http://www.w3.org/2000/svg"}
+
+    def test_bar_is_proportional_and_unknown_is_not_empty(self):
+        from codexbar_linux.icons import bar_svg
+        for theme in ("light", "dark"):
+            widths = []
+            for pct in (25, 50, 100):
+                rects = ElementTree.fromstring(bar_svg(pct, "ok", theme)).findall("s:rect", self.ns)
+                self.assertEqual(rects[0].attrib["opacity"], "0.25")
+                widths.append(float(rects[1].attrib["width"]))
+            self.assertAlmostEqual(widths[0] * 2, widths[1], places=2)
+            self.assertAlmostEqual(widths[1] * 2, widths[2], places=2)
+            self.assertEqual(len(ElementTree.fromstring(bar_svg(0, "ok", theme)).findall("s:rect", self.ns)), 1)
+            unknown = ElementTree.fromstring(bar_svg(None, "unknown", theme)).findall("s:rect", self.ns)[1]
+            stale = ElementTree.fromstring(bar_svg(None, "stale", theme)).findall("s:rect", self.ns)[1]
+            self.assertEqual(unknown.attrib["fill"], "none")
+            self.assertNotEqual(unknown.attrib["stroke-dasharray"], stale.attrib["stroke-dasharray"])
+        for bad in ((101, "ok"), (True, "ok"), (None, "ok"), (10, "bogus")):
+            with self.assertRaises(ValueError):
+                bar_svg(*bad)
+
+    def test_config_keeps_valid_styles_only(self):
+        from codexbar_linux import config
+        from unittest import mock
+        self.assertEqual(config.AppConfig().meter_style, "gauge")
+        with tempfile.TemporaryDirectory() as directory:
+            config_dir = Path(directory)
+            with mock.patch.object(config, "CONFIG_DIR", config_dir), mock.patch.object(config, "CONFIG_PATH", config_dir / "config.json"):
+                config.save_config(config.AppConfig(meter_style="bars"))
+                self.assertEqual(config.load_config().meter_style, "bars")
+                (config_dir / "config.json").write_text('{"meter_style": "pie"}')
+                self.assertEqual(config.load_config().meter_style, "gauge")
+
+    def test_tray_rows_follow_the_chosen_style(self):
+        from codexbar_linux.config import AppConfig
+        now = datetime.now(timezone.utc)
+        tray, gtk, _ = TrayMenuIconTests().build()
+        usage = ProviderUsage(provider="claude", source="synthetic", updated_at=now, primary=UsageWindow(67, 300))
+        with gtk:
+            bars = tray._provider_item(usage, AppConfig(meter_style="bars"))
+            gauge = tray._provider_item(usage, AppConfig())
+        self.assertEqual(bars.image, ("image", ("bar", 67, "ok")))
+        self.assertEqual(bars.children[0].children[0].image, ("image", ("bar", 67, "ok")))
+        self.assertEqual(gauge.image, ("image", ("pixbuf", 67, "ok")))
+        self.assertEqual(bars.label, gauge.label)

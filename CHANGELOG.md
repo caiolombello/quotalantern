@@ -24,6 +24,9 @@
   computed live from the reset time ("resets in 1h 41m") and no longer
   repeat the window name ("Session — Session (5h)"). Adapters that are not
   connected no longer count as unconfirmed coverage.
+- Settings → Display → Menu meters: choose rings (default) or bars for the
+  tray menu rows. Bars are drawn as icons too, with the same colors and
+  unknown/stale states, so they render the same in every panel font.
 - Optional Orla Desktop quota export, off by default: `--orla-export
   enable|disable|status` manages a separate consent file, and each genuine
   refresh then publishes subscription quota windows (percent, length, reset)

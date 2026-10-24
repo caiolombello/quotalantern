@@ -58,6 +58,26 @@ def gauge_svg(pct=None, state="unknown", theme="dark", style="facho"):
     return f'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><title>{state}: {pct if known else "quota unconfirmed"}</title>{ring}{center}</svg>'
 
 
+def bar_svg(pct=None, state="unknown", theme="dark"):
+    """Menu-row meter as a short horizontal bar, same states as the ring.
+
+    Drawn as an icon so it renders the same in every panel font; hosts scale
+    it into their square menu icon slot. Unknown/stale never get a fill.
+    """
+    _check(pct, state)
+    known = state in _KNOWN
+    _, muted, colors = _palette(theme)
+    accent = colors.get(state, muted)
+    track = f'<rect x="1" y="10" width="30" height="12" rx="3" fill="{accent}" opacity="0.25"/>'
+    if known:
+        width = 30 * pct / 100
+        fill = f'<rect x="1" y="10" width="{width:.3f}" height="12" rx="3" fill="{accent}"/>' if pct > 0 else ""
+    else:
+        dash = "2 2" if state == "unknown" else "5 2"
+        fill = f'<rect x="2" y="11" width="28" height="10" rx="2.5" fill="none" stroke="{muted}" stroke-width="2" stroke-dasharray="{dash}"/>'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><title>{state}: {pct if known else "quota unconfirmed"}</title>{track}{fill}</svg>'
+
+
 def _point(deg):
     rad = math.radians(deg)
     return f"{16 + 13 * math.sin(rad):.3f} {16 - 13 * math.cos(rad):.3f}"

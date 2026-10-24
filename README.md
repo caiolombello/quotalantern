@@ -93,7 +93,9 @@ stale uses a dashed neutral ring/segment (a clock in the center). Mixed coverage
 is disclosed in the title and menu. Source and age update every minute; bindings
 with tooltip properties also receive a dedicated tooltip. Older Ayatana
 bindings expose Title/IconAccessibleDesc; native hover rendering is pending QA.
-Middle-click the tray icon to open the Overview.
+Middle-click the tray icon to open the Overview. Tray menu rows carry a small
+meter per provider and window: rings by default, or bars under
+**Settings → Display → Menu meters**.
 
 Provider credentials and usage history are sensitive. Enabling an adapter
 permits its existing code to read its configured local credential source and
