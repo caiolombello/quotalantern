@@ -1,0 +1,105 @@
+name: Release
+# Manual release: checks the release commit, creates the annotated tag when it
+# does not exist yet, builds the source archive with SHA256SUMS, verifies the
+# extracted archive and publishes the GitHub release. A tag pushed beforehand
+# (for example a signed one) is used as is; its subject and body become the
+# title and notes unless given here.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, e.g. v0.1.0-alpha.5 (must match BUILD.json)
+        required: true
+      target:
+        description: Full commit SHA on main to tag (only when the tag does not exist yet)
+        required: false
+      title:
+        description: Release title (defaults to the annotated tag subject)
+        required: false
+      notes:
+        description: Release notes in Markdown (defaults to the annotated tag body)
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # Inputs reach the shell only through the environment, never inline.
+      TAG: ${{ inputs.tag }}
+      TARGET: ${{ inputs.target }}
+      TITLE: ${{ inputs.title }}
+      NOTES: ${{ inputs.notes }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Resolve the release commit
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "::error::Invalid tag: $TAG"; exit 1; }
+          git fetch --force --tags origin
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            commit=$(git rev-parse "$TAG^{commit}")
+            if [ -n "$TARGET" ] && [ "$TARGET" != "$commit" ]; then
+              echo "::error::$TAG already points at $commit"; exit 1
+            fi
+          else
+            [[ "$TARGET" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::$TAG does not exist yet; give the full target SHA"; exit 1; }
+            commit="$TARGET"
+          fi
+          git merge-base --is-ancestor "$commit" origin/main || { echo "::error::$commit is not on main"; exit 1; }
+          git checkout --quiet "$commit"
+          version=$(python -c 'import json; print(json.load(open("BUILD.json"))["version"])')
+          [ "v$version" = "$TAG" ] || { echo "::error::BUILD.json version $version does not match $TAG"; exit 1; }
+          echo "COMMIT=$commit" >> "$GITHUB_ENV"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Check the release commit
+        run: |
+          python scripts/check_public.py
+          python run_offline.py
+      - name: Create the annotated tag
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Using the existing tag $TAG"; exit 0
+          fi
+          [ -n "$TITLE" ] && [ -n "$NOTES" ] || { echo "::error::A new tag needs a title and notes"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '%s\n\n%s\n' "$TITLE" "$NOTES" > "$RUNNER_TEMP/tag-message"
+          git tag -a "$TAG" -F "$RUNNER_TEMP/tag-message" "$COMMIT"
+          git push origin "refs/tags/$TAG"
+      - name: Build and verify the source archive
+        run: |
+          set -euo pipefail
+          name="quotalantern-$VERSION-source.tar.gz"
+          mkdir -p "$RUNNER_TEMP/dist" "$RUNNER_TEMP/extract"
+          git archive --format=tar.gz --prefix="quotalantern-$VERSION/" "$TAG" > "$RUNNER_TEMP/dist/$name"
+          (cd "$RUNNER_TEMP/dist" && sha256sum "$name" > SHA256SUMS && cat SHA256SUMS)
+          tar -xzf "$RUNNER_TEMP/dist/$name" -C "$RUNNER_TEMP/extract"
+          cd "$RUNNER_TEMP/extract/quotalantern-$VERSION"
+          python scripts/check_public.py
+          python run_offline.py
+      - name: Publish the release
+        run: |
+          set -euo pipefail
+          title="${TITLE:-$(git tag -l --format='%(contents:subject)' "$TAG")}"
+          if [ -n "$NOTES" ]; then
+            printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
+          else
+            git tag -l --format='%(contents:body)' "$TAG" > "$RUNNER_TEMP/notes.md"
+          fi
+          flags=()
+          case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$TAG" --verify-tag --title "$title" --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}" \
+            "$RUNNER_TEMP/dist/quotalantern-$VERSION-source.tar.gz" "$RUNNER_TEMP/dist/SHA256SUMS"

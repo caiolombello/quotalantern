@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Release workflow (Actions → Release, run manually): checks the release
+  commit, creates the annotated tag when it does not exist yet (or uses one
+  pushed beforehand, such as a signed tag), builds the source archive with
+  SHA256SUMS, verifies the extracted archive and publishes the GitHub release.
+
 ## v0.1.0-alpha.5
 
 - Tray ring: with two or more connected subscription providers the ring is
