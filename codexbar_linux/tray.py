@@ -28,19 +28,26 @@ from .core.models import ProviderUsage, UsageWindow
 from .dashboard import DashboardWindow
 from .providers import PROVIDER_BY_ID
 from . import ui_common as ui
-from .presentation import APP_NAME, format_next_reset, menu_rows, reading_badge, reading_details, reset_view, tray_reading
+from .presentation import (
+    APP_NAME,
+    detail_rows,
+    format_next_reset,
+    menu_rows,
+    reading_badge,
+    reset_view,
+    tray_reading,
+    window_row,
+)
 from .codex_resets import SITE_URL
-from .icons import ensure_gauge_icon
+from .icons import bar_svg, ensure_gauge_icon, gauge_svg
 
 logger = logging.getLogger("codexbar-linux")
 
-
-def _status_icon_name(worst: int) -> str:
-    if worst >= 90:
-        return "critical"
-    if worst >= 70:
-        return "warning"
-    return "ok"
+# Menu rows carry a small meter, ring or bar per Settings (exported to the
+# tray host as PNG icon-data); hosts scale it to their menu icon size, so
+# render at 2x for HiDPI.
+MENU_ICON_PIXELS = 32
+_GAUGE_STATE = {"ok": "ok", "warn": "warning", "crit": "critical"}
 
 
 class TrayApp:
@@ -72,6 +79,7 @@ class TrayApp:
         self._refreshing = False
         self._dashboard: Optional[DashboardWindow] = None
         self._codex_resets = None
+        self._overview_item: Optional[Gtk.MenuItem] = None
 
     def _cfg(self) -> AppConfig:
         if self.get_config:
@@ -82,18 +90,22 @@ class TrayApp:
         menu = Gtk.Menu()
         cfg = self._cfg()
 
-        # Ring context first: what the icon shows, then source, age and coverage.
+        # Ring context first: what the icon shows, its source and age, coverage.
+        # The full ring policy and segment list live in the title/tooltip.
         reading = tray_reading(usages, warn_at=cfg.threshold_warning, crit_at=cfg.threshold_critical)
-        for row in menu_rows(reading):
-            self._plain_row(menu, row)
-        header = self._build_header_label(usages, next_reset, cfg)
+        rows = menu_rows(reading)
+        header = self._build_header_label(usages, next_reset, cfg, confirmed=reading.percent is not None)
         if header:
-            self._plain_row(menu, header)
+            # Next reset before the coverage warning, which stays last.
+            rows.insert(len(rows) - 1 if reading.unconfirmed else len(rows), header)
+        for row in rows:
+            self._plain_row(menu, row)
         menu.append(Gtk.SeparatorMenuItem())
 
         overview = Gtk.MenuItem(label="Open Overview…")
         overview.connect("activate", lambda *_: self.open_dashboard())
         menu.append(overview)
+        self._overview_item = overview
         refresh = Gtk.MenuItem(label="Refreshing…" if self._refreshing else "Refresh Now")
         refresh.set_sensitive(not self._refreshing)
         refresh.connect("activate", lambda *_: self._trigger_refresh())
@@ -107,19 +119,12 @@ class TrayApp:
             crit_at=cfg.threshold_critical,
         )
 
-        sections = [
-            ("At the limit", buckets["critical"]),
-            ("Active", buckets["active"]),
-            ("Problems", buckets["errors"]),
-            ("Not connected", buckets["offline"]),
-        ]
+        # Most urgent first; each row states its own condition in words, so
+        # no section titles are needed.
         any_item = False
-        for title, items in sections:
-            if not items:
-                continue
-            any_item = True
-            self._plain_row(menu, f"{title} · {len(items)}")
-            for usage in items:
+        for key in ("critical", "active", "errors", "offline"):
+            for usage in buckets[key]:
+                any_item = True
                 menu.append(self._provider_item(usage, cfg))
 
         if not any_item:
@@ -149,11 +154,24 @@ class TrayApp:
         menu.show_all()
         return menu
 
+    def _set_menu(self, usages: list[ProviderUsage], next_reset: str = "") -> None:
+        """Install a fresh menu; middle-click on the tray item opens the Overview."""
+        if self.indicator is None:
+            return
+        middle_click = hasattr(self.indicator, "set_secondary_activate_target")
+        if middle_click:
+            # Release the old menu's item first; the binding warns when its
+            # target is no longer inside the menu being installed.
+            self.indicator.set_secondary_activate_target(None)
+        self.menu = self._build_menu(usages, next_reset)
+        self.indicator.set_menu(self.menu)
+        overview = getattr(self, "_overview_item", None)
+        if middle_click and overview is not None:
+            self.indicator.set_secondary_activate_target(overview)
+
     def _trigger_refresh(self) -> None:
         self._refreshing = True
-        if self.indicator is not None:
-            self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-            self.indicator.set_menu(self.menu)
+        self._set_menu(self._last_usages, self._last_next_reset)
         self.on_refresh()
 
     def _build_header_label(
@@ -161,6 +179,7 @@ class TrayApp:
         usages: list[ProviderUsage],
         next_reset: str,
         cfg: AppConfig,
+        confirmed: bool = False,
     ) -> str:
         parts: list[str] = []
         # The ring rows above already name the most-used window; only the
@@ -172,10 +191,49 @@ class TrayApp:
 
         if next_reset:
             parts.append(format_next_reset(next_reset))
-        if self._last_updated_at:
+        # A confirmed reading already shows "Updated: …" one row above.
+        if self._last_updated_at and not confirmed:
             age = datetime.now(timezone.utc) - self._last_updated_at
             parts.append(f"Last check {ui.human_age(age)}")
         return "  ·  ".join(parts)
+
+    def _meter_pixbuf(self, pct, state, style="gauge"):
+        """Small ring or bar as a pixbuf, or None when the SVG loader is unavailable."""
+        theme = getattr(self, "icon_theme", "dark")
+        cache = self.__dict__.setdefault("_meter_pixbufs", {})
+        key = (pct, state, theme, style)
+        if key not in cache:
+            if len(cache) > 256:
+                cache.clear()
+            try:
+                svg = bar_svg(pct, state, theme) if style == "bars" else gauge_svg(pct, state, theme, style="plain")
+                loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
+                loader.set_size(MENU_ICON_PIXELS, MENU_ICON_PIXELS)
+                loader.write(svg.encode("utf-8"))
+                loader.close()
+                cache[key] = loader.get_pixbuf()
+            except Exception:
+                logger.debug("Menu ring icons unavailable; using text markers", exc_info=True)
+                cache[key] = None
+        return cache[key]
+
+    def _meter_item(self, label: str, ring, style: str, marker: str = "") -> tuple[Gtk.MenuItem, bool]:
+        """(item, has_icon): a meter icon row, or plain text with a marker when icons are unavailable."""
+        pixbuf = self._meter_pixbuf(*ring, style) if ring else None
+        if ring is None and self._meter_pixbuf(None, "unknown", style) is not None:
+            marker = ""  # icons work: rows without a meter (costs, offline) stay unmarked
+        if pixbuf is not None:
+            # Properties at construction: the setters are deprecated, the
+            # widget itself is what DBusMenu exports as icon-data.
+            item = Gtk.ImageMenuItem(
+                label=label, image=Gtk.Image.new_from_pixbuf(pixbuf), always_show_image=True
+            )
+            return item, True
+        return Gtk.MenuItem(label=f"{marker}  {label}" if marker else label), False
+
+    @staticmethod
+    def _neutral_ring(badge: str):
+        return (None, "stale") if badge.startswith("◷") else (None, "unknown")
 
     def _provider_item(self, usage: ProviderUsage, cfg: AppConfig) -> Gtk.MenuItem:
         level = ui.status_level(
@@ -184,25 +242,33 @@ class TrayApp:
         emoji = ui.status_emoji(level)
         name = ui.display_name(usage.provider)
         badge_kind, badge = reading_badge(usage)
+        confirmed = ui.has_usage_data(usage) and badge_kind == "ok"
         if ui.has_usage_data(usage) and badge_kind in ("stale", "neutral"):
             emoji = "⚪"  # color only for confirmed readings
 
+        ring = None
         if level == "soft":
-            label = f"{emoji}  {name}  —  not connected"
+            label = f"{name} — not connected"
         elif level == "error":
-            label = f"{emoji}  {name}  —  error"
+            label = f"{name} — error"
+            ring = (None, "unknown")
         elif ui.has_usage_data(usage):
             pct = ui.worst_usage_pct(usage)
-            bar = ui.block_bar(pct, width=8)
-            label = f"{emoji}  {name}  {pct}%  {bar}"
-            if badge_kind != "ok":
-                label += f"  · {badge}"
+            label = f"{name} — {pct}%"
+            if confirmed:
+                ring = (pct, _GAUGE_STATE.get(level, "ok"))
+                if level == "crit":
+                    label += " · at the limit"
+            else:
+                ring = self._neutral_ring(badge)
+                label += f" · {badge}"
         elif ui.monetary_label(usage):
-            label = f"{emoji}  {name}  —  spend only"
+            label = f"{name} — {ui.monetary_label(usage)}"  # costs never get a ring
         else:
-            label = f"{emoji}  {name}  —  quota unknown"
+            label = f"{name} — quota unknown"
+            ring = (None, "unknown")
 
-        item = Gtk.MenuItem(label=label)
+        item, _ = self._meter_item(label, ring, cfg.meter_style, emoji)
         submenu = Gtk.Menu()
 
         if usage.error:
@@ -233,14 +299,16 @@ class TrayApp:
         if usage.credits_remaining is not None:
             self._plain_row(submenu, f"Credits: {usage.credits_remaining}")
 
-        if usage.primary:
-            submenu.append(self._window_item("Session", usage.primary))
-        if usage.secondary:
-            submenu.append(self._window_item("Weekly", usage.secondary))
-        if usage.tertiary:
-            submenu.append(self._window_item("Extra", usage.tertiary))
+        for window_name, window in (("Session", usage.primary), ("Weekly", usage.secondary), ("Extra", usage.tertiary)):
+            if window:
+                if confirmed:
+                    window_level = "crit" if window.used_percent >= cfg.threshold_critical else "warn" if window.used_percent >= cfg.threshold_warning else "ok"
+                    ring = (window.used_percent, _GAUGE_STATE[window_level])
+                else:
+                    ring = self._neutral_ring(badge)
+                submenu.append(self._window_item(window_name, window, ring, cfg.meter_style))
 
-        for detail in reading_details(usage):
+        for detail in detail_rows(usage):
             self._plain_row(submenu, detail, sensitive=False)
 
         self._append_refresh_provider_item(submenu, usage.provider)
@@ -270,16 +338,19 @@ class TrayApp:
         if snapshot is not None and not self._cfg().codex_resets_enabled:
             snapshot = None
         self._codex_resets = snapshot
-        if self.indicator is not None:
-            self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-            self.indicator.set_menu(self.menu)
+        self._set_menu(self._last_usages, self._last_next_reset)
         if self._dashboard is not None:
             self._dashboard.set_codex_resets(snapshot)
         return False
 
-    def _window_item(self, name: str, window: UsageWindow) -> Gtk.MenuItem:
-        item = Gtk.MenuItem(label=ui.window_label(name, window))
-        item.set_sensitive(False)
+    def _window_item(self, name: str, window: UsageWindow, ring=None, style: str = "gauge") -> Gtk.MenuItem:
+        item, has_icon = self._meter_item(window_row(name, window), ring, style)
+        if has_icon:
+            # Hosts grey out icons of disabled rows; keep the ring in color and
+            # let the row open the Overview for the full picture.
+            item.connect("activate", lambda *_: self.open_dashboard())
+        else:
+            item.set_sensitive(False)
         return item
 
     def _plain_row(self, menu: Gtk.Menu, text: str, sensitive: bool = False) -> None:
@@ -348,13 +419,11 @@ class TrayApp:
     def _on_settings_saved(self, cfg: AppConfig) -> None:
         if self.on_config_saved:
             self.on_config_saved(cfg)
-        # Rebuild menu immediately with new prefs (hide offline, label mode)
+        # Rebuild menu, ring and label immediately with the new preferences
+        # (hide offline, label mode, warning/critical levels).
         if self.indicator is not None:
-            self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-            self.indicator.set_menu(self.menu)
-            label = self._tray_label(self._last_usages, cfg)
-            if label:
-                self.indicator.set_label(label, label)
+            self._set_menu(self._last_usages, self._last_next_reset)
+            self._apply_status_icon()
         if self._dashboard is not None:
             self._dashboard.update(
                 self._last_usages, self._last_next_reset, self._last_updated_at
@@ -374,7 +443,7 @@ class TrayApp:
     def _show_about(self) -> None:
         dialog = Gtk.AboutDialog()
         dialog.set_program_name(APP_NAME)
-        dialog.set_version("0.1.0-alpha.4")
+        dialog.set_version("0.1.0-alpha.5")
         dialog.set_comments(
             "AI usage, quotas, resets and costs in your Linux tray.\n"
             "Every reading shows its source and age; unknown is never zero."
@@ -391,27 +460,14 @@ class TrayApp:
         dialog.run()
         dialog.destroy()
 
-    def _icon_for_worst(self, worst_pct: int) -> str:
-        return self.icon_paths.get(_status_icon_name(worst_pct), "")
-
-    def _tray_label(self, usages: list[ProviderUsage], cfg: Optional[AppConfig] = None) -> str:
-        cfg = cfg or self._cfg()
+    def _tray_label(self, usages: list[ProviderUsage], cfg: AppConfig, fallback: str) -> str:
+        """Panel label (shown by GNOME, ignored by Plasma): the ring's own label
+        unless the opt-in headroom heuristic has a qualified answer."""
         if cfg.label_mode == "recommend":
             best_name, _, best_pct = ui.recommendation(usages)
             if best_name:
                 return f"{best_name} {best_pct}%"
-        name, pct = ui.bottleneck(usages)
-        if name:
-            emoji = ui.status_emoji(
-                "crit"
-                if pct >= cfg.threshold_critical
-                else "warn"
-                if pct >= cfg.threshold_warning
-                else "ok"
-            )
-            # Some panels strip emoji; keep name+pct primary
-            return f"{name} {pct}%"
-        return ""
+        return fallback
 
     def _start_countdown(self) -> None:
         if self._countdown_tag:
@@ -421,8 +477,7 @@ class TrayApp:
     def _on_countdown_tick(self) -> bool:
         if self.indicator is None:
             return False
-        self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-        self.indicator.set_menu(self.menu)
+        self._set_menu(self._last_usages, self._last_next_reset)
         self._apply_status_icon()
         if self._dashboard is not None:
             self._dashboard.update(
@@ -441,7 +496,12 @@ class TrayApp:
             self._last_usages, warn_at=cfg.threshold_warning, crit_at=cfg.threshold_critical
         )
         directory = os.path.dirname(self.icon_paths["neutral"])
-        icon_path = ensure_gauge_icon(directory, reading.percent, reading.state, self.icon_theme)
+        # Several providers: one segment each, so one exhausted service does
+        # not paint the whole ring as if everything were at the limit.
+        segments = [(s.percent, s.state) for s in reading.segments] if reading.segmented else None
+        icon_path = ensure_gauge_icon(
+            directory, reading.percent, reading.state, self.icon_theme, segments=segments
+        )
         if self.indicator is not None and icon_path and os.path.exists(icon_path):
             description = APP_NAME + " — " + reading.description
             self.indicator.set_icon_full(icon_path, description)
@@ -451,7 +511,7 @@ class TrayApp:
             if self.indicator.find_property("tooltip-body") is not None:
                 self.indicator.set_property("tooltip-title", APP_NAME + " — " + reading.label)
                 self.indicator.set_property("tooltip-body", reading.description)
-            label = self._tray_label(self._last_usages, cfg) if cfg.label_mode == "recommend" else reading.label
+            label = self._tray_label(self._last_usages, cfg, reading.label)
             self.indicator.set_label(label, label)
 
     def update(
@@ -467,10 +527,7 @@ class TrayApp:
         self._last_next_reset = next_reset
         self._last_updated_at = updated_at or datetime.now(timezone.utc)
 
-        self.menu = self._build_menu(usages, next_reset)
-        self.indicator.set_menu(self.menu)
-
-        cfg = self._cfg()
+        self._set_menu(usages, next_reset)
         self._apply_status_icon()
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 
@@ -495,8 +552,7 @@ class TrayApp:
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_icon_full(icon_path, APP_NAME)
 
-        self.menu = self._build_menu([], "")
-        self.indicator.set_menu(self.menu)
+        self._set_menu([], "")
         self._start_countdown()
 
         cfg = self._cfg()

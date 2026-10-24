@@ -1,7 +1,32 @@
 # Changelog
 
-## Unreleased
+## v0.1.0-alpha.5
 
+- Tray ring: with two or more connected subscription providers the ring is
+  split into one segment per provider, each filled to and colored by its own
+  most-used window. One provider at its limit now shows one red segment
+  instead of a fully red ring that read as "everything is at the limit".
+  Unknown and stale providers keep a neutral dotted/dashed segment; not
+  connected adapters stay out. One provider, or no confirmed reading, keeps
+  the previous single ring. The icon title lists every segment, and the
+  Overview header ring mirrors the tray.
+- Tray: saving Settings re-colors the ring with the new warning/critical
+  levels immediately instead of on the next minute tick, and the panel label
+  keeps the ring's wording. Middle-click on the tray icon opens the Overview.
+  Generated ring icons are pruned to the most recent 48 files.
+- Tray menu: provider and window rows carry a small ring icon (exported to
+  the tray host as PNG) instead of emoji and block-character bars, which
+  rendered as grids and dithered patterns in Plasma's menu font. Rows state
+  their condition in words ("at the limit", "◷ Stale", "not connected"), so
+  the section titles are gone. The header drops to the reading, its source
+  and age, the next reset and what is unconfirmed; the ring policy and the
+  segment list stay in the icon title and the Overview. Reset countdowns are
+  computed live from the reset time ("resets in 1h 41m") and no longer
+  repeat the window name ("Session — Session (5h)"). Adapters that are not
+  connected no longer count as unconfirmed coverage.
+- Settings → Display → Menu meters: choose rings (default) or bars for the
+  tray menu rows. Bars are drawn as icons too, with the same colors and
+  unknown/stale states, so they render the same in every panel font.
 - Optional Orla Desktop quota export, off by default: `--orla-export
   enable|disable|status` manages a separate consent file, and each genuine
   refresh then publishes subscription quota windows (percent, length, reset)

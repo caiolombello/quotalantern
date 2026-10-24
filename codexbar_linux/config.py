@@ -26,6 +26,8 @@ DEFAULT_ENABLED_PROVIDERS: list[str] = [
     "glm",
 ]
 
+METER_STYLES = ("gauge", "bars")
+
 DEFAULT_OPEN_URLS: dict[str, str] = {
     "codex": "https://chatgpt.com/codex/settings/usage",
     "claude": "https://claude.ai/settings/usage",
@@ -55,6 +57,7 @@ class AppConfig:
     # UI preferences
     hide_offline: bool = False
     label_mode: str = "bottleneck"  # bottleneck | recommend
+    meter_style: str = "gauge"  # gauge | bars — tray menu row meters
     open_dashboard_on_start: bool = False
     # Third-party global reset announcements (codex-resets.com); opt-in.
     codex_resets_enabled: bool = False
@@ -127,6 +130,9 @@ def load_config() -> AppConfig:
     label_mode = data.get("label_mode")
     if label_mode in ("bottleneck", "recommend"):
         cfg.label_mode = label_mode
+    meter_style = data.get("meter_style")
+    if meter_style in METER_STYLES:
+        cfg.meter_style = meter_style
     if isinstance(data.get("open_dashboard_on_start"), bool):
         cfg.open_dashboard_on_start = data["open_dashboard_on_start"]
     if isinstance(data.get("codex_resets_enabled"), bool):
@@ -155,6 +161,7 @@ def save_config(cfg: AppConfig) -> None:
         "glm_region": cfg.glm_region,
         "hide_offline": cfg.hide_offline,
         "label_mode": cfg.label_mode,
+        "meter_style": cfg.meter_style,
         "open_dashboard_on_start": cfg.open_dashboard_on_start,
         "codex_resets_enabled": cfg.codex_resets_enabled,
         "codex_resets_hint_alerts": cfg.codex_resets_hint_alerts,

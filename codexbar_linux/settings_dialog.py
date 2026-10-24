@@ -230,6 +230,15 @@ class SettingsDialog:
             "Most-used matches the ring. Headroom is a heuristic limited to fresh, qualified Codex readings.",
             self.label_mode,
         )
+        self.meter_style = Gtk.ComboBoxText()
+        self.meter_style.append("gauge", "Gauge (ring)")
+        self.meter_style.append("bars", "Bars")
+        self.meter_style.set_active_id(self.config.meter_style or "gauge")
+        self._row(
+            listbox, "Menu meters",
+            "How each provider and window is drawn in the tray menu. Same colors and states either way.",
+            self.meter_style,
+        )
         self.hide_offline = Gtk.Switch()
         self.hide_offline.set_active(self.config.hide_offline)
         self._row(
@@ -521,6 +530,7 @@ class SettingsDialog:
             glm_region=self.glm_region.get_active_id() or "global",
             hide_offline=self.hide_offline.get_active(),
             label_mode=self.label_mode.get_active_id() or "bottleneck",
+            meter_style=self.meter_style.get_active_id() or "gauge",
             open_dashboard_on_start=self.open_dash.get_active(),
             codex_resets_enabled=self.codex_resets.get_active(),
             codex_resets_hint_alerts=self.codex_resets_hints.get_active(),

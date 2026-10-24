@@ -178,6 +178,11 @@ class ThresholdValidationTests(unittest.TestCase):
         self.assertTrue(cfg.hide_offline)
         self.assertIn("enabled", self.view._enabled_count.get_text())
 
+    def test_menu_meter_style_is_a_saved_choice(self):
+        self.assertEqual(self.view._collect().meter_style, "gauge")
+        self.view.meter_style.set_active_id("bars")
+        self.assertEqual(self.view._collect().meter_style, "bars")
+
 
 if __name__ == "__main__":
     unittest.main()

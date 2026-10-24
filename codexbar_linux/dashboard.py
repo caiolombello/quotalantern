@@ -19,7 +19,7 @@ from .core.models import ProviderUsage, UsageWindow
 from .providers import PROVIDER_BY_ID
 from . import gtk_style
 from . import ui_common as ui
-from .icons import gauge_svg
+from .icons import gauge_svg, segmented_gauge_svg
 from .codex_resets import SITE_URL
 from .presentation import (
     APP_NAME,
@@ -27,6 +27,7 @@ from .presentation import (
     format_next_reset,
     reading_badge,
     reading_details,
+    reset_text,
     reset_view,
     tray_reading,
     window_span,
@@ -264,7 +265,7 @@ class DashboardWindow:
         if self._footer_label is not None:
             self._footer_label.set_text(
                 f"Auto-refresh every {format_interval(cfg.refresh_interval_seconds)}"
-                "  ·  The ring follows one window — never a total or average"
+                "  ·  Ring: one segment per provider — never a total or average"
             )
 
         if self._updated_at is None and not self._usages:
@@ -304,7 +305,7 @@ class DashboardWindow:
             self._usages, warn_at=cfg.threshold_warning, crit_at=cfg.threshold_critical
         )
         loading = self._updated_at is None and not self._usages
-        self._set_ring(reading.percent, reading.state)
+        self._set_ring(reading)
         # Unknown/stale rings carry their own dash/clock symbol in the SVG.
         self._ring_value.set_text(f"{reading.percent}%" if reading.percent is not None else "")
         context = self._ring_value.get_style_context()
@@ -333,10 +334,14 @@ class DashboardWindow:
         self._unconfirmed_label.set_text(unconfirmed)
         self._unconfirmed_label.set_visible(bool(unconfirmed))
 
-    def _set_ring(self, pct: Optional[int], state: str) -> None:
-        """Same SVG vocabulary as the tray: arc = usage, dotted = unknown, dashed = stale."""
+    def _set_ring(self, reading) -> None:
+        """Same SVG as the tray: arc = usage, one segment per provider, dotted = unknown, dashed = stale."""
         try:
-            svg = gauge_svg(pct, state, self._theme, style="plain")
+            if reading.segmented:
+                segments = [(segment.percent, segment.state) for segment in reading.segments]
+                svg = segmented_gauge_svg(segments, self._theme, style="plain")
+            else:
+                svg = gauge_svg(reading.percent, reading.state, self._theme, style="plain")
         except ValueError:
             svg = gauge_svg(None, "unknown", self._theme, style="plain")
         self._ring.set_from_gicon(Gio.BytesIcon.new(GLib.Bytes.new(svg.encode("utf-8"))), Gtk.IconSize.DIALOG)
@@ -501,10 +506,7 @@ class DashboardWindow:
         bar.set_fraction(pct / 100.0 if valid else 0.0)
         row.pack_start(bar, False, False, 0)
 
-        reset = ui.clean_reset(window.reset_description or "")
-        if not reset and window.resets_at:
-            left = ui.time_left(window.resets_at)
-            reset = f"resets in {left}" if left and left != "resetting…" else left
+        reset = reset_text(window)
         if reset:
             caption = _label(reset, "ql-caption")
             caption.set_ellipsize(Pango.EllipsizeMode.END)

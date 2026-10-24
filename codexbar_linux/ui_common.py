@@ -141,9 +141,6 @@ def color_for_pct(pct: int, warn_at: int = 70, crit_at: int = 90) -> str:
     return COLOR_OK
 
 
-def block_bar(pct: int, width: int = 10) -> str:
-    filled = max(0, min(width, int(width * pct / 100)))
-    return "█" * filled + "░" * (width - filled)
 
 
 def clean_reset(text: str) -> str:
@@ -190,16 +187,6 @@ def time_left(target: Optional[datetime]) -> str:
     return f"{hrs // 24}d {hrs % 24}h"
 
 
-def window_label(name: str, window: UsageWindow) -> str:
-    pct = window.used_percent
-    bar = block_bar(pct, width=10)
-    reset = clean_reset(window.reset_description or "")
-    if not reset and window.resets_at:
-        reset = time_left(window.resets_at)
-    text = f"{name}: {bar}  {pct}%"
-    if reset:
-        text += f"  ({reset})"
-    return text
 
 
 def classify_usages(
@@ -299,21 +286,3 @@ def recommendation(
         return "", "", 0
     _, usage, worst = min(candidates, key=lambda item: item[2][3])
     return display_name(usage.provider), worst[2], worst[3]
-
-
-def bottleneck(usages: list[ProviderUsage]) -> tuple[str, int]:
-    """Provider with highest usage among healthy ones."""
-    worst_name = ""
-    worst_pct = -1
-    for u in usages:
-        if is_hard_error(u) or is_soft_status(u.error):
-            continue
-        if not has_usage_data(u):
-            continue
-        pct = worst_usage_pct(u)
-        if pct > worst_pct:
-            worst_pct = pct
-            worst_name = display_name(u.provider)
-    if worst_pct < 0:
-        return "", 0
-    return worst_name, worst_pct

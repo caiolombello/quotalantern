@@ -258,7 +258,8 @@ kbd { padding: 1px 6px; border: 1px solid var(--rule-2); border-bottom-width: 2p
 .menu-mock li.dim { color: #8ea2bb; }
 .menu-mock li.on { background: #2a4f7a; }
 .menu-mock li.sep { height: 1px; padding: 0; margin: 5px 8px; background: #2a3d55; }
-.menu-mock .blk { font-family: var(--mono); font-size: 12px; letter-spacing: -.03em; }
+.menu-mock .mi { display: inline-flex; width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; }
+.menu-mock .mi svg { width: 16px; height: 16px; }
 .settings-mock { display: grid; grid-template-columns: 140px 1fr; border-radius: 8px; overflow: hidden; background: #1f1f1f; border: 1px solid #333; color: #ececec; font-size: 13px; }
 .settings-mock nav { padding: 6px 0; background: #262626; border-right: 1px solid #333; }
 .settings-mock nav span { display: block; padding: 8px 14px; color: #cfcfcf; white-space: nowrap; }
