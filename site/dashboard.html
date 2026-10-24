@@ -41,22 +41,19 @@
     <div class="figure-row">
       <figure>
         <div class="plate">
-          <div class="panel" aria-hidden="true"><span class="glyph round"></span><span class="glyph"></span><span class="tray-ring" data-static-ring="96,critical"></span><span>14:32</span></div>
+          <div class="panel" aria-hidden="true"><span class="glyph round"></span><span class="glyph"></span><span class="tray-ring" data-static-segments="71,ok;96,critical;none,stale"></span><span>14:32</span></div>
           <ul class="menu-mock" aria-hidden="true">
               <li class="dim">Claude Primary (5h): 96% used</li>
-              <li class="dim">Source: oauth · Updated: 1m ago · Reported usage — recent</li>
-              <li class="dim">Ring: one reported window; largest consumed fraction, not total quota.</li>
+              <li class="dim">Source: oauth · Updated: 1m ago</li>
+              <li class="dim">Next reset: Codex Session — resets in 2h</li>
               <li class="dim">Unconfirmed: Grok: stale</li>
-              <li class="dim">Next reset: Codex Session — resets in 2h  ·  Last check 1m ago</li>
               <li class="sep"></li>
               <li class="on">Open Overview…</li>
               <li>Refresh Now</li>
               <li class="sep"></li>
-              <li class="dim">At the limit · 1</li>
-              <li><span>🔴  Claude  96%  <span class="blk">███████░</span></span><span>▸</span></li>
-              <li class="dim">Active · 2</li>
-              <li><span>🟢  Codex  71%  <span class="blk">█████░░░</span></span><span>▸</span></li>
-              <li><span>⚪  Grok  18%  <span class="blk">█░░░░░░░</span>  · ◷ Stale</span><span>▸</span></li>
+              <li><span><span class="mi" data-static-ring="96,critical,app,plain"></span>Claude — 96% · at the limit</span><span>▸</span></li>
+              <li><span><span class="mi" data-static-ring="71,ok,app,plain"></span>Codex — 71%</span><span>▸</span></li>
+              <li><span><span class="mi" data-static-ring="none,stale,app,plain"></span>Grok — 18% · ◷ Stale</span><span>▸</span></li>
               <li class="sep"></li>
               <li>Settings…</li>
               <li>Open Logs</li>
@@ -71,9 +68,10 @@
         <h2 class="display" id="menu-title" data-pt="O menu começa pelo anel." data-en="The menu starts with the ring.">O menu começa pelo anel.</h2>
         <p data-pt="As primeiras linhas explicam o que o ícone mostra: qual janela, de onde veio o dado, quando foi lido e o que ficou sem confirmação." data-en="The first lines explain what the icon shows: which window, where the data came from, when it was read and what is unconfirmed.">As primeiras linhas explicam o que o ícone mostra: qual janela, de onde veio o dado, quando foi lido e o que ficou sem confirmação.</p>
         <ol class="points">
-            <li data-pt="Cor só para leituras confirmadas. O Grok, com leitura antiga, aparece em cinza." data-en="Color only for confirmed readings. Grok, with a stale reading, shows in grey.">Cor só para leituras confirmadas. O Grok, com leitura antiga, aparece em cinza.</li>
-            <li data-pt="Cada provedor abre um submenu com as janelas, o reset, a conta e a origem do dado." data-en="Each provider opens a submenu with its windows, reset, account and data source.">Cada provedor abre um submenu com as janelas, o reset, a conta e a origem do dado.</li>
-            <li data-pt="Abrir a Overview e atualizar ficam no primeiro nível, sem submenu." data-en="Opening the Overview and refreshing sit at the top level, no submenu.">Abrir a Overview e atualizar ficam no primeiro nível, sem submenu.</li>
+            <li data-pt="Cada provedor tem um medidor próprio, e cor só aparece em leitura confirmada. O Grok, com leitura antiga, fica com o anel cinza tracejado." data-en="Each provider has its own meter, and color only shows for confirmed readings. Grok, with a stale reading, gets the dashed grey ring.">Cada provedor tem um medidor próprio, e cor só aparece em leitura confirmada. O Grok, com leitura antiga, fica com o anel cinza tracejado.</li>
+            <li data-pt="Cada linha diz o estado em palavras. O submenu mostra as janelas com o reset em contagem regressiva, a conta e a origem do dado." data-en="Each row states its condition in words. The submenu shows the windows with a live reset countdown, the account and the data source.">Cada linha diz o estado em palavras. O submenu mostra as janelas com o reset em contagem regressiva, a conta e a origem do dado.</li>
+            <li data-pt="Abrir a Overview e atualizar ficam no primeiro nível. O clique do meio no ícone também abre a Overview." data-en="Opening the Overview and refreshing sit at the top level. Middle-clicking the icon opens the Overview too.">Abrir a Overview e atualizar ficam no primeiro nível. O clique do meio no ícone também abre a Overview.</li>
+            <li data-pt="Em Settings → Display → Menu meters, os medidores podem ser anéis, o padrão, ou barras." data-en="Under Settings → Display → Menu meters, the meters can be rings, the default, or bars.">Em Settings → Display → Menu meters, os medidores podem ser anéis, o padrão, ou barras.</li>
         </ol>
       </div>
     </div>
@@ -126,7 +124,7 @@
       </div>
       <div class="captures">
         <figure>
-          <img src="assets/screens/overview-dark.png" width="560" height="1180" loading="lazy" alt="Janela Overview no tema escuro: Claude a 93%, Codex a 71%, Grok com leitura antiga, gasto da OpenAI API e um erro do Gemini." data-pt-alt="Janela Overview no tema escuro: Claude a 93%, Codex a 71%, Grok com leitura antiga, gasto da OpenAI API e um erro do Gemini." data-en-alt="Overview window in the dark theme: Claude at 93%, Codex at 71%, Grok with a stale reading, OpenAI API spend and a Gemini error.">
+          <img src="assets/screens/overview-dark.png" width="560" height="1180" loading="lazy" alt="Janela Overview no tema escuro, com o anel dividido por provedor: Claude a 93%, Codex a 71%, Grok com leitura antiga, gasto da OpenAI API e um erro do Gemini." data-pt-alt="Janela Overview no tema escuro, com o anel dividido por provedor: Claude a 93%, Codex a 71%, Grok com leitura antiga, gasto da OpenAI API e um erro do Gemini." data-en-alt="Overview window in the dark theme, with the ring split per provider: Claude at 93%, Codex at 71%, Grok with a stale reading, OpenAI API spend and a Gemini error.">
           <figcaption class="caption" data-pt="Fig. 5 · Overview, tema escuro." data-en="Fig. 5 · Overview, dark theme.">Fig. 5 · Overview, tema escuro.</figcaption>
         </figure>
         <figure>

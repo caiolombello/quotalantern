@@ -28,6 +28,35 @@ function ringSVG(pct, state, { center = 'facho', palette = 'app' } = {}) {
   return svg + '</svg>';
 }
 
+/* Two or more providers: one segment each, clockwise from the top, in the
+   enabled-provider order; same gap rule as segmented_gauge_svg(). */
+function arcPath(start, end) {
+  const pt = deg => { const a = deg * Math.PI / 180; return `${(16 + R * Math.sin(a)).toFixed(3)} ${(16 - R * Math.cos(a)).toFixed(3)}`; };
+  return `M${pt(start)}A13 13 0 ${end - start > 180 ? 1 : 0} 1 ${pt(end)}`;
+}
+
+function segmentedSVG(segments, { center = 'facho', palette = 'app' } = {}) {
+  const v = name => `var(--${palette === 'app' ? 'app-' : ''}${name})`;
+  const step = 360 / segments.length;
+  const gap = Math.min(20, step * 0.3);
+  const span = step - gap;
+  let svg = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">';
+  segments.forEach(([pct, state], i) => {
+    const start = i * step + gap / 2;
+    const whole = arcPath(start, start + span);
+    if (state in TONE) {
+      const color = v(TONE[state]);
+      svg += `<path d="${whole}" fill="none" stroke="${color}" stroke-width="3" opacity=".25"/>`;
+      if (pct > 0) svg += `<path d="${arcPath(start, start + span * pct / 100)}" fill="none" stroke="${color}" stroke-width="3"/>`;
+    } else {
+      const color = v('neutral');
+      svg += `<path d="${whole}" fill="none" stroke="${color}" stroke-width="3" opacity=".25"/><path d="${whole}" fill="none" stroke="${color}" stroke-width="3" stroke-dasharray="${state === 'unknown' ? '2 2' : '5 2'}"/>`;
+    }
+  });
+  if (center === 'facho') svg += `<g transform="translate(7.68 7.68) scale(.52)" fill="${v('ink')}">${FACHO_PATHS}</g>`;
+  return svg + '</svg>';
+}
+
 /* ── Fig. 1: the tray icon, enlarged and annotated ───────────────────── */
 const CALLOUTS = {
   known: pct => [
@@ -88,7 +117,7 @@ function setupRingFigure() {
 const FRESH = 'Source: oauth · Updated: just now · Reported usage — recent';
 const SCENARIOS = {
   normal: {
-    ring: [42, 'ok'], label: 'Codex Primary (5h): 42% used',
+    ring: [42, 'ok'], segments: [[42, 'ok'], [27, 'ok']], label: 'Codex Primary (5h): 42% used',
     sub: 'Last check just now  ·  Next reset: Codex Session — resets in 2h',
     sections: [['ACTIVE', [
       { name: 'Codex', pill: ['ok', '✓ Fresh'], pct: [42, 'ok'], plan: 'Pro', meters: [['Session · 5h', 42, 'ok', 'resets in 2h'], ['Weekly · 7d', 31, 'ok', 'resets in 4d']], details: FRESH },
@@ -99,7 +128,7 @@ const SCENARIOS = {
     ], false]],
   },
   near: {
-    ring: [96, 'critical'], label: 'Claude Primary (5h): 96% used',
+    ring: [96, 'critical'], segments: [[88, 'warning'], [96, 'critical']], label: 'Claude Primary (5h): 96% used',
     sub: 'Last check 1m ago  ·  Next reset: Claude Session — resets in 41m',
     sections: [
       ['AT THE LIMIT', [
@@ -156,9 +185,10 @@ function cardHTML(c) {
 function renderScenario(root, key) {
   const s = SCENARIOS[key];
   const [pct, state] = s.ring;
-  root.querySelectorAll('[data-tray-ring]').forEach(el => { el.innerHTML = ringSVG(pct, state); });
+  const draw = opts => (s.segments ? segmentedSVG(s.segments, opts) : ringSVG(pct, state, opts));
+  root.querySelectorAll('[data-tray-ring]').forEach(el => { el.innerHTML = draw(); });
   const ring = root.querySelector('[data-app-ring]');
-  if (ring) ring.innerHTML = ringSVG(pct, state, { center: 'plain' }) + (pct === null ? '' : `<b class="t-${TONE[state]}">${pct}%</b>`);
+  if (ring) ring.innerHTML = draw({ center: 'plain' }) + (pct === null ? '' : `<b class="t-${TONE[state]}">${pct}%</b>`);
   const set = (sel, text) => { const el = root.querySelector(sel); if (el) { el.textContent = text || ''; el.hidden = !text; } };
   set('[data-app-title]', s.label);
   set('[data-app-sub]', s.sub);
@@ -229,8 +259,15 @@ function initialLanguage() {
 }
 
 document.querySelectorAll('[data-static-ring]').forEach(el => {
-  const [pct, state, palette] = el.dataset.staticRing.split(',');
-  el.innerHTML = ringSVG(pct === 'none' ? null : Number(pct), state, { palette: palette || 'app' });
+  const [pct, state, palette, center] = el.dataset.staticRing.split(',');
+  el.innerHTML = ringSVG(pct === 'none' ? null : Number(pct), state, { palette: palette || 'app', center: center || 'facho' });
+});
+document.querySelectorAll('[data-static-segments]').forEach(el => {
+  const segments = el.dataset.staticSegments.split(';').map(part => {
+    const [pct, state] = part.split(',');
+    return [pct === 'none' ? null : Number(pct), state];
+  });
+  el.innerHTML = segmentedSVG(segments);
 });
 document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => applyLanguage(b.dataset.lang, true)));
 setupRingFigure();
