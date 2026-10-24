@@ -27,6 +27,7 @@ from .presentation import (
     format_next_reset,
     reading_badge,
     reading_details,
+    reset_text,
     reset_view,
     tray_reading,
     window_span,
@@ -505,10 +506,7 @@ class DashboardWindow:
         bar.set_fraction(pct / 100.0 if valid else 0.0)
         row.pack_start(bar, False, False, 0)
 
-        reset = ui.clean_reset(window.reset_description or "")
-        if not reset and window.resets_at:
-            left = ui.time_left(window.resets_at)
-            reset = f"resets in {left}" if left and left != "resetting…" else left
+        reset = reset_text(window)
         if reset:
             caption = _label(reset, "ql-caption")
             caption.set_ellipsize(Pango.EllipsizeMode.END)

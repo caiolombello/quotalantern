@@ -14,6 +14,16 @@
   levels immediately instead of on the next minute tick, and the panel label
   keeps the ring's wording. Middle-click on the tray icon opens the Overview.
   Generated ring icons are pruned to the most recent 48 files.
+- Tray menu: provider and window rows carry a small ring icon (exported to
+  the tray host as PNG) instead of emoji and block-character bars, which
+  rendered as grids and dithered patterns in Plasma's menu font. Rows state
+  their condition in words ("at the limit", "◷ Stale", "not connected"), so
+  the section titles are gone. The header drops to the reading, its source
+  and age, the next reset and what is unconfirmed; the ring policy and the
+  segment list stay in the icon title and the Overview. Reset countdowns are
+  computed live from the reset time ("resets in 1h 41m") and no longer
+  repeat the window name ("Session — Session (5h)"). Adapters that are not
+  connected no longer count as unconfirmed coverage.
 - Optional Orla Desktop quota export, off by default: `--orla-export
   enable|disable|status` manages a separate consent file, and each genuine
   refresh then publishes subscription quota windows (percent, length, reset)

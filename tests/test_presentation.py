@@ -147,24 +147,46 @@ class InterfaceCopyTests(unittest.TestCase):
         for _, text in (self.badge(), reading_badge(spend, now=self.now)):
             self.assertNotIn("%", text)
 
-    def test_menu_rows_keep_every_description_line(self):
+    def test_menu_header_is_compact_and_full_context_stays_in_the_title(self):
         from codexbar_linux.presentation import menu_rows
         usages = [ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(42, 300), updated_at=self.now),
                   ProviderUsage(provider="claude", source="synthetic", primary=UsageWindow(5), error="Stale", updated_at=self.now)]
-        for reading in (tray_reading(usages, now=self.now), tray_reading([], now=self.now), tray_reading(usages[1:], now=self.now)):
+        reading = tray_reading(usages, now=self.now)
+        self.assertEqual(menu_rows(reading), [reading.label, "Source: synthetic · Updated: just now", "Unconfirmed: Claude: stale"])
+        # Policy and per-segment lines are not repeated in the menu, only in the title/tooltip.
+        two = [usages[0], ProviderUsage(provider="claude", source="synthetic", primary=UsageWindow(5), updated_at=self.now)]
+        reading = tray_reading(two, now=self.now)
+        self.assertEqual(len(menu_rows(reading)), 2)
+        self.assertIn("Segments: Codex 42% · Claude 5%", reading.description)
+        for reading in (tray_reading([], now=self.now), tray_reading(usages[1:], now=self.now)):
             rows = menu_rows(reading)
             self.assertEqual(rows[0], reading.label)
-            joined = " · ".join(rows)
-            for line in reading.description.split("\n"):
-                self.assertIn(line, joined)
-        rows = menu_rows(tray_reading(usages, now=self.now))
-        self.assertIn("Source: synthetic · Updated: just now", rows[1])
-        self.assertIn("Unconfirmed: Claude: stale", rows)
+            if reading.unconfirmed:
+                self.assertIn(reading.unconfirmed, rows)
+
+    def test_window_rows_are_plain_text_with_a_live_countdown(self):
+        from codexbar_linux.presentation import reset_text, window_row
+        later = self.now + timedelta(hours=2, minutes=59)
+        self.assertEqual(window_row("Session", UsageWindow(67, None, "Session (5h): resets in 3h", later), self.now),
+                         "Session — 67% used · resets in 2h 59m")
+        self.assertEqual(reset_text(UsageWindow(1, None, "", self.now + timedelta(hours=2, seconds=30)), self.now), "resets in 2h")
+        self.assertEqual(reset_text(UsageWindow(1, None, "", self.now + timedelta(minutes=45, seconds=5)), self.now), "resets in 45m")
+        self.assertEqual(window_row("Weekly", UsageWindow(20, 10080, "", self.now + timedelta(days=3, hours=4)), self.now),
+                         "Weekly (7d) — 20% used · resets in 3d 4h")
+        self.assertEqual(window_row("Session", UsageWindow(60, 300, "resets in 2h"), self.now), "Session (5h) — 60% used · resets in 2h")
+        # Provider text that is more than a countdown is kept as is.
+        self.assertEqual(reset_text(UsageWindow(40, None, "on-demand $1.00 / $5.00", later), self.now), "on-demand $1.00 / $5.00")
+        self.assertEqual(reset_text(UsageWindow(5, None, "Session (5h): resetting…"), self.now), "resetting…")
+        self.assertEqual(reset_text(UsageWindow(5, None, "", self.now - timedelta(seconds=1)), self.now), "resetting…")
+        self.assertEqual(reset_text(UsageWindow(5, None, "", self.now.replace(tzinfo=None)), self.now), "")
+        for row in (window_row("Session", UsageWindow(67, 300, "resets in 2h"), self.now),):
+            self.assertFalse(set(row) & set("█░▓▒"))
 
     def test_window_and_reset_labels(self):
         from codexbar_linux.presentation import format_interval, format_next_reset, window_span
         self.assertEqual([window_span(m) for m in (300, 10080, 1440, 45, None, 0, True)], ["5h", "7d", "1d", "45m", "", "", ""])
         self.assertEqual(format_next_reset("codex Session | resets in 2h"), "Next reset: Codex Session — resets in 2h")
+        self.assertEqual(format_next_reset("claude Session | Session (5h): resets in 3h"), "Next reset: Claude Session — resets in 3h")
         self.assertEqual(format_next_reset("unknown-id Weekly | 14:30"), "Next reset: unknown-id Weekly — 14:30")
         self.assertEqual(format_next_reset(""), "")
         self.assertEqual([format_interval(s) for s in (300, 3600, 90)], ["5 min", "1 h", "90 s"])
@@ -251,6 +273,7 @@ class SegmentedRingTests(unittest.TestCase):
         self.assertFalse(reading.segmented)
         self.assertEqual([s.provider for s in reading.segments], ["Codex"])
         self.assertIn("not total quota", reading.description)
+        self.assertEqual(reading.unconfirmed, "")  # not connected is not missing coverage
 
     def test_no_confirmed_reading_keeps_the_whole_ring_neutral(self):
         reading = tray_reading([self.usage("codex", error="HTTP 500"),
@@ -342,3 +365,75 @@ class TraySegmentedIconTests(unittest.TestCase):
             app._build_menu = build
             app._set_menu([], "")
             self.assertEqual(app.indicator.set_secondary_activate_target.call_args_list, [mock.call(None), mock.call(overview)])
+
+
+class TrayMenuIconTests(unittest.TestCase):
+    """Rows carry a ring icon instead of emoji and block glyphs; costs never get one."""
+
+    def build(self):
+        from unittest import mock
+        from tests.test_cost_presentation import CostPresentationTests, Widget
+        builder = CostPresentationTests()
+        builder.build(ProviderUsage(provider="openai-api", source="synthetic", balance_usd=0))
+        module = builder.tray_module
+
+        class ImageMenuItem(Widget):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.image = kwargs.get("image")
+                self.activations = []
+
+            def connect(self, signal, callback):
+                self.activations.append(callback)
+
+        gtk = mock.patch.object(module, "Gtk", types_namespace(module.Gtk, ImageMenuItem=ImageMenuItem,
+                                                               Image=types_namespace(new_from_pixbuf=lambda pb: ("image", pb))))
+        tray = object.__new__(builder.tray_class)
+        tray._append_refresh_provider_item = lambda *args: None
+        tray._append_open_item = lambda *args: None
+        tray.icon_theme = "dark"
+        tray._ring_pixbuf = lambda pct, state: ("pixbuf", pct, state)
+        tray.open_dashboard = mock.Mock()
+        return tray, gtk, ImageMenuItem
+
+    def test_provider_and_window_rows_use_rings(self):
+        from codexbar_linux.config import AppConfig
+        now = datetime.now(timezone.utc)
+        tray, gtk, ImageMenuItem = self.build()
+        with gtk:
+            item = tray._provider_item(ProviderUsage(provider="codex", source="synthetic", updated_at=now,
+                                                     primary=UsageWindow(100, 300, "resets in 2h"), secondary=UsageWindow(40, 10080)), AppConfig())
+            self.assertIsInstance(item, ImageMenuItem)
+            self.assertEqual(item.label, "Codex — 100% · at the limit")
+            self.assertEqual(item.image, ("image", ("pixbuf", 100, "critical")))
+            rows = [child for child in item.children[0].children if isinstance(child, ImageMenuItem)]
+            self.assertEqual([row.label for row in rows], ["Session (5h) — 100% used · resets in 2h", "Weekly (7d) — 40% used"])
+            self.assertEqual([row.image[1][2] for row in rows], ["critical", "ok"])
+            rows[0].activations[0]()
+            tray.open_dashboard.assert_called_once()
+            labels = item.labels()
+            self.assertFalse(any(set(label) & set("█░🟢🔴🟡⚪") for label in labels))
+
+            stale = tray._provider_item(ProviderUsage(provider="grok", source="synthetic", primary=UsageWindow(18),
+                                                      error="Stale cached response"), AppConfig())
+            self.assertEqual(stale.label, "Grok — 18% · ◷ Stale")
+            self.assertEqual(stale.image, ("image", ("pixbuf", None, "stale")))  # no color for unconfirmed data
+
+            spend = tray._provider_item(ProviderUsage(provider="openai-api", source="synthetic", balance_usd=12.5), AppConfig())
+            self.assertNotIsInstance(spend, ImageMenuItem)
+            self.assertEqual(spend.label, "OpenAI API — Month-to-date cost: $12.50 USD")
+
+            offline = tray._provider_item(ProviderUsage(provider="grok", source="synthetic", error="Not signed in — cookie missing"), AppConfig())
+            self.assertEqual(offline.label, "Grok — not connected")
+            # Submenu context is one row unless the state adds information.
+            fresh_rows = [child.label for child in item.children[0].children]
+            self.assertIn("Source: synthetic · Updated: just now", fresh_rows)
+            self.assertNotIn("Reported usage — recent", fresh_rows)
+            self.assertIn("Cached / stale — not confirmed now", [child.label for child in stale.children[0].children])
+
+
+def types_namespace(base=None, **extra):
+    import types
+    values = dict(vars(base)) if base is not None else {}
+    values.update(extra)
+    return types.SimpleNamespace(**values)
