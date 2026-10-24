@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Tray ring: with two or more connected subscription providers the ring is
+  split into one segment per provider, each filled to and colored by its own
+  most-used window. One provider at its limit now shows one red segment
+  instead of a fully red ring that read as "everything is at the limit".
+  Unknown and stale providers keep a neutral dotted/dashed segment; not
+  connected adapters stay out. One provider, or no confirmed reading, keeps
+  the previous single ring. The title and menu list every segment, and the
+  Overview header ring mirrors the tray.
+- Tray: saving Settings re-colors the ring with the new warning/critical
+  levels immediately instead of on the next minute tick, and the panel label
+  keeps the ring's wording. Middle-click on the tray icon opens the Overview.
+  Generated ring icons are pruned to the most recent 48 files.
 - Optional Orla Desktop quota export, off by default: `--orla-export
   enable|disable|status` manages a separate consent file, and each genuine
   refresh then publishes subscription quota windows (percent, length, reset)

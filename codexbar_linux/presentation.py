@@ -32,57 +32,101 @@ def reading_details(usage, now=None):
 
 
 @dataclass(frozen=True)
+class RingSegment:
+    """One provider's slice of the tray ring: its most-used window, or neutral."""
+    provider: str
+    state: str
+    percent: int | None
+    window: str = ""
+
+    def text(self) -> str:
+        return f"{self.provider} {self.percent}%" if self.percent is not None else f"{self.provider} {self.state}"
+
+
+@dataclass(frozen=True)
 class TrayReading:
     state: str
     percent: int | None
     label: str
     description: str
+    segments: tuple = ()
+
+    @property
+    def segmented(self) -> bool:
+        """Two or more providers share the ring and at least one reading is confirmed."""
+        return self.percent is not None and len(self.segments) >= 2
+
+
+SINGLE_RING_POLICY = "Ring: one reported window; largest consumed fraction, not total quota."
+SEGMENTED_RING_POLICY = "Ring: one segment per provider, clockwise from the top; never a total or average."
 
 
 def tray_reading(usages, now=None, warn_at=70, crit_at=90):
-    """Select ONE window, never add or average incompatible allowances.
+    """Select ONE window per provider, never add or average incompatible allowances.
 
-    Largest consumed fraction is an attention heuristic, not shared capacity
-    or a headroom recommendation. Exclude costs, unknown, failed and old reads.
+    With one provider the ring is that provider's largest consumed fraction.
+    With several, each connected provider gets its own ring segment (in the
+    order given) so one exhausted service does not paint the whole ring.
+    The label still names the largest consumed fraction: an attention
+    heuristic, not shared capacity or a headroom recommendation.
+    Exclude costs; unknown, failed and old reads stay neutral.
     """
     now = now or datetime.now(timezone.utc)
+
+    def level(pct):
+        return "critical" if pct >= crit_at else "warning" if pct >= warn_at else "ok"
+
     candidates = []
     unconfirmed = []
+    segments = []
     has_stale = False
     for usage in usages:
         spec = PROVIDER_BY_ID.get(usage.provider)
         if spec is None or spec.category != "subscription":
             continue
+        name = ui.display_name(usage.provider)
         stamp = usage.updated_at
         dated = isinstance(stamp, datetime) and stamp.tzinfo is not None and stamp.utcoffset() is not None
         age = (now - stamp).total_seconds() if dated else None
-        windows = [(name, w) for name, w in (("Primary", usage.primary), ("Secondary", usage.secondary), ("Tertiary", usage.tertiary)) if w]
+        windows = [(label, w) for label, w in (("Primary", usage.primary), ("Secondary", usage.secondary), ("Tertiary", usage.tertiary)) if w]
         valid = bool(windows) and all(type(w.used_percent) is int and 0 <= w.used_percent <= 100 for _, w in windows)
         stale = ui.is_stale(usage.error) or (valid and age is not None and age > 600)
         has_stale |= stale
         if usage.error or age is None or not 0 <= age <= 600 or not valid:
-            unconfirmed.append(f"{ui.display_name(usage.provider)}: {'stale' if stale else 'unknown / error'}")
+            unconfirmed.append(f"{name}: {'stale' if stale else 'unknown / error'}")
+            # Not-connected adapters stay out of the ring; anything else keeps
+            # a neutral segment so missing data is visible, never an empty arc.
+            if not (ui.is_soft_status(usage.error) and not ui.has_usage_data(usage)):
+                segments.append(RingSegment(name, "stale" if stale else "unknown", None))
             continue
-        for name, window in windows:
+        own = []
+        for label, window in windows:
             duration = window.window_minutes
             if type(duration) is int and duration > 0:
-                name += f" ({duration // 60}h)" if duration % 60 == 0 else f" ({duration}m)"
-            candidates.append((window.used_percent, usage, name))
-    policy = "Ring: one reported window; largest consumed fraction, not total quota."
+                label += f" ({duration // 60}h)" if duration % 60 == 0 else f" ({duration}m)"
+            own.append((window.used_percent, usage, label))
+        candidates.extend(own)
+        pct, _, window = max(own, key=lambda item: item[0])
+        segments.append(RingSegment(name, level(pct), pct, window))
     if candidates:
         pct, usage, window = max(candidates, key=lambda item: item[0])
-        state = "critical" if pct >= crit_at else "warning" if pct >= warn_at else "ok"
+        state = level(pct)
         label = f"{ui.display_name(usage.provider)} {window}: {pct}% used"
-        description = "\n".join((label, *reading_details(usage, now), policy))
+        lines = [label, *reading_details(usage, now)]
+        if len(segments) >= 2:
+            lines += [SEGMENTED_RING_POLICY, "Segments: " + " · ".join(segment.text() for segment in segments)]
+        else:
+            lines.append(SINGLE_RING_POLICY)
+        description = "\n".join(lines)
     else:
         pct, state = None, "stale" if has_stale else "unknown"
         label = "Cached / stale — quota unconfirmed" if has_stale else "Quota unknown"
-        description = "\n".join((label, policy))
+        description = "\n".join((label, SINGLE_RING_POLICY))
         for usage in usages:
             description += "\n" + ui.display_name(usage.provider) + " · " + " · ".join(reading_details(usage, now)[:2])
     if unconfirmed:
         description += "\nUnconfirmed: " + "; ".join(unconfirmed)
-    return TrayReading(state, pct, label, description)
+    return TrayReading(state, pct, label, description, tuple(segments))
 
 
 def tray_icon_name(usages, now=None, warn_at=70, crit_at=90):

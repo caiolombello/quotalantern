@@ -107,7 +107,10 @@ class TrayUncertaintyTests(unittest.TestCase):
         reading = tray_reading(usages, now=self.now)
         self.assertEqual(reading.percent, 80)
         self.assertIn("Claude Secondary (168h)", reading.label)
-        self.assertIn("not total quota", reading.description)
+        # Two subscriptions share the ring as segments; costs never enter it.
+        self.assertIn("never a total or average", reading.description)
+        self.assertEqual([(s.provider, s.percent) for s in reading.segments], [("Codex", 20), ("Claude", 80)])
+        self.assertIn("not total quota", tray_reading(usages[:1], now=self.now).description)
         self.assertIn("Source: synthetic", reading.description)
         self.assertIn("Updated:", reading.description)
 
@@ -180,3 +183,162 @@ class InterfaceCopyTests(unittest.TestCase):
         fresh = tray._provider_item(ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(18), updated_at=datetime.now(timezone.utc)), AppConfig())
         self.assertTrue(fresh.label.startswith("🟢"))
         self.assertNotIn("Stale", fresh.label)
+
+
+class SegmentedRingTests(unittest.TestCase):
+    """Several providers: one segment each, so one exhausted service is not 'everything'."""
+    now = ReadingPresentationTests.now
+    ns = {"s": "http://www.w3.org/2000/svg"}
+
+    def usage(self, provider, pct=None, **kwargs):
+        kwargs.setdefault("updated_at", self.now)
+        if pct is not None:
+            kwargs["primary"] = UsageWindow(pct, 300)
+        return ProviderUsage(provider=provider, source="synthetic", **kwargs)
+
+    def arcs(self, svg):
+        root = ElementTree.fromstring(svg)
+        return [(path.attrib.get("stroke"), path.attrib.get("opacity"), path.attrib.get("stroke-dasharray"), path.attrib["d"])
+                for path in root.findall("s:path", self.ns) if path.attrib.get("fill") == "none"]
+
+    def test_one_exhausted_provider_does_not_paint_the_whole_ring(self):
+        from codexbar_linux.icons import segmented_gauge_svg
+        reading = tray_reading([self.usage("codex", 100), self.usage("claude", 20)], now=self.now)
+        self.assertTrue(reading.segmented)
+        self.assertEqual((reading.state, reading.percent), ("critical", 100))
+        self.assertEqual([(s.provider, s.state, s.percent) for s in reading.segments],
+                         [("Codex", "critical", 100), ("Claude", "ok", 20)])
+        self.assertIn("Segments: Codex 100% · Claude 20%", reading.description)
+        for theme in ("dark", "light"):
+            svg = segmented_gauge_svg([(s.percent, s.state) for s in reading.segments], theme)
+            strokes = {stroke for stroke, opacity, _, _ in self.arcs(svg) if opacity is None}
+            self.assertEqual(len(strokes), 2)  # red fill for Codex, green fill for Claude
+            self.assertIn("segments: critical 100, ok 20", svg)
+
+    def test_segment_fill_is_proportional_within_its_own_span(self):
+        from codexbar_linux.icons import segmented_gauge_svg
+        import math, re
+        def sweep(d):
+            nums = [float(n) for n in re.findall(r"-?\d+\.\d+", d)]
+            (x0, y0), (x1, y1) = nums[0:2], nums[-2:]
+            a0 = math.degrees(math.atan2(x0 - 16, 16 - y0)) % 360
+            a1 = math.degrees(math.atan2(x1 - 16, 16 - y1)) % 360
+            return (a1 - a0) % 360
+        arcs = self.arcs(segmented_gauge_svg([(50, "ok"), (100, "critical")]))
+        tracks = [sweep(d) for _, opacity, _, d in arcs if opacity == "0.25"]
+        fills = [sweep(d) for _, opacity, _, d in arcs if opacity is None]
+        self.assertAlmostEqual(tracks[0], tracks[1], places=2)
+        self.assertAlmostEqual(fills[0] * 2, fills[1], places=2)
+        self.assertAlmostEqual(fills[1], tracks[1], places=2)
+        # A zero reading keeps its track and draws no fill; it is not unknown.
+        self.assertEqual(len([a for a in self.arcs(segmented_gauge_svg([(0, "ok"), (10, "ok")])) if a[1] is None]), 1)
+
+    def test_unknown_and_stale_segments_are_neutral_not_empty(self):
+        from codexbar_linux.icons import segmented_gauge_svg
+        failed = self.usage("claude", error="HTTP 500")
+        stale = self.usage("grok", primary=UsageWindow(90, 300), error="Stale cached response")
+        reading = tray_reading([self.usage("codex", 40), failed, stale], now=self.now)
+        self.assertEqual([(s.state, s.percent) for s in reading.segments], [("ok", 40), ("unknown", None), ("stale", None)])
+        self.assertIn("Segments: Codex 40% · Claude unknown · Grok stale", reading.description)
+        svg = segmented_gauge_svg([(s.percent, s.state) for s in reading.segments])
+        dashes = [dash for _, _, dash, _ in self.arcs(svg) if dash]
+        self.assertEqual(len(dashes), 2)
+        self.assertNotEqual(dashes[0], dashes[1])
+
+    def test_not_connected_providers_stay_out_of_the_ring(self):
+        offline = self.usage("grok", error="Not signed in — cookie missing")
+        reading = tray_reading([self.usage("codex", 30), offline], now=self.now)
+        self.assertFalse(reading.segmented)
+        self.assertEqual([s.provider for s in reading.segments], ["Codex"])
+        self.assertIn("not total quota", reading.description)
+
+    def test_no_confirmed_reading_keeps_the_whole_ring_neutral(self):
+        reading = tray_reading([self.usage("codex", error="HTTP 500"),
+                                self.usage("claude", 10, updated_at=self.now - timedelta(minutes=11))], now=self.now)
+        self.assertFalse(reading.segmented)
+        self.assertEqual((reading.state, reading.percent), ("stale", None))
+
+    def test_segments_follow_provider_order_and_current_thresholds(self):
+        usages = [self.usage("claude", 80), self.usage("codex", 10)]
+        reading = tray_reading(usages, now=self.now, warn_at=70, crit_at=90)
+        self.assertEqual([(s.provider, s.state) for s in reading.segments], [("Claude", "warning"), ("Codex", "ok")])
+        reading = tray_reading(usages, now=self.now, warn_at=50, crit_at=75)
+        self.assertEqual(reading.segments[0].state, "critical")
+
+    def test_invalid_segment_input_is_rejected(self):
+        from codexbar_linux.icons import segmented_gauge_svg
+        with self.assertRaises(ValueError):
+            segmented_gauge_svg([(10, "ok")])
+        for bad in ((101, "ok"), (True, "ok"), (None, "ok"), (10, "bogus")):
+            with self.assertRaises(ValueError):
+                segmented_gauge_svg([(10, "ok"), bad])
+
+    def test_icon_file_is_segmented_and_cache_is_bounded(self):
+        from codexbar_linux import icons
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as directory:
+            path = icons.ensure_gauge_icon(directory, 100, "critical", "dark", segments=[(100, "critical"), (20, "ok")])
+            self.assertIn("segments: critical 100, ok 20", Path(path).read_text())
+            single = icons.ensure_gauge_icon(directory, 100, "critical", "dark")
+            self.assertNotEqual(single, path)  # same state and percent, different drawing
+            self.assertIn("<title>critical: 100</title>", Path(single).read_text())
+            with mock.patch.object(icons, "ICON_CACHE_LIMIT", 3):
+                for pct in range(6):
+                    latest = icons.ensure_gauge_icon(directory, pct, "ok", "dark", segments=[(pct, "ok"), (1, "ok")])
+                    self.assertTrue(Path(latest).exists())
+                self.assertEqual(len(list(Path(directory).glob("quota-*.svg"))), 3)
+
+
+class TraySegmentedIconTests(unittest.TestCase):
+    now = ReadingPresentationTests.now
+
+    def tray(self, usages, directory):
+        from unittest import mock
+        from tests.test_cost_presentation import CostPresentationTests
+        builder = CostPresentationTests()
+        builder.build(ProviderUsage(provider="openai-api", source="synthetic", balance_usd=0))
+        app = object.__new__(builder.tray_class)
+        app.indicator = mock.Mock()
+        app.icon_paths = ensure_icons(directory, theme="dark")
+        app.icon_theme = "dark"
+        app._last_usages = usages
+        app._last_next_reset = ""
+        app._last_updated_at = self.now
+        app._dashboard = None
+        app.on_config_saved = None
+        app._build_menu = mock.Mock()
+        return app, builder.tray_module
+
+    def test_tray_icon_and_label_with_two_providers(self):
+        from unittest import mock
+        from codexbar_linux.config import AppConfig
+        usages = [ProviderUsage(provider="codex", source="synthetic", primary=UsageWindow(100, 300), updated_at=self.now),
+                  ProviderUsage(provider="claude", source="synthetic", primary=UsageWindow(20, 300), updated_at=self.now)]
+        with tempfile.TemporaryDirectory() as directory:
+            app, module = self.tray(usages, directory)
+            config = AppConfig()
+            app.get_config = lambda: config
+            reading = lambda usages, **thresholds: tray_reading(usages, now=self.now, **thresholds)
+            with mock.patch.object(module, "tray_reading", side_effect=reading):
+                app._apply_status_icon()
+                icon = Path(app.indicator.set_icon_full.call_args.args[0]).read_text()
+                self.assertIn("segments: critical 100, ok 20", icon)
+                self.assertIn("Segments: Codex 100% · Claude 20%", app.indicator.set_title.call_args.args[0])
+                self.assertEqual(app.indicator.set_label.call_args.args[0], "Codex Primary (5h): 100% used")
+                # Saving new levels re-colors the ring at once, not on the next minute tick.
+                config = AppConfig(threshold_warning=10, threshold_critical=101)
+                app._on_settings_saved(config)
+                icon = Path(app.indicator.set_icon_full.call_args.args[0]).read_text()
+                self.assertIn("segments: warning 100, warning 20", icon)
+
+    def test_middle_click_opens_overview(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self.tray([], directory)
+            overview = mock.Mock()
+            def build(*args):
+                app._overview_item = overview
+                return mock.Mock()
+            app._build_menu = build
+            app._set_menu([], "")
+            self.assertEqual(app.indicator.set_secondary_activate_target.call_args_list, [mock.call(None), mock.call(overview)])

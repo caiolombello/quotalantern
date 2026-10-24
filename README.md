@@ -80,13 +80,20 @@ Missing or invalid readings are unknown, not zero. Costs use currency units
 and are not displayed as quota. Pagination must complete or report an error.
 Headroom recommendations are limited to qualified fresh Codex readings; stale,
 failed or missing reads stay neutral in the tray. The tray ring displays the actual
-consumed fraction of one named, recent subscription window: the largest
-reported fraction is an attention heuristic, not a total or average across
-services and not a recommendation. Costs are excluded. Unknown uses a dotted
-neutral ring/dash; stale uses a dashed neutral ring/clock. Mixed coverage is
-disclosed in the title and menu. Source and age update every minute; bindings
+consumed fraction of named, recent subscription windows. With one provider the
+whole ring is its most-used window. With several, each connected provider gets
+its own segment, clockwise from the top in the order of your enabled providers,
+filled to and colored by its own most-used window, so one exhausted service no
+longer paints the whole ring as if everything were at the limit. It is never a
+total or average across services and not a recommendation; the title and menu
+still name the largest reported fraction and list every segment. Costs are
+excluded and adapters that are not connected stay out of the ring. Unknown uses a
+dotted neutral ring/segment (a dash in the center when nothing is confirmed);
+stale uses a dashed neutral ring/segment (a clock in the center). Mixed coverage
+is disclosed in the title and menu. Source and age update every minute; bindings
 with tooltip properties also receive a dedicated tooltip. Older Ayatana
 bindings expose Title/IconAccessibleDesc; native hover rendering is pending QA.
+Middle-click the tray icon to open the Overview.
 
 Provider credentials and usage history are sensitive. Enabling an adapter
 permits its existing code to read its configured local credential source and

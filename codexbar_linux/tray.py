@@ -35,14 +35,6 @@ from .icons import ensure_gauge_icon
 logger = logging.getLogger("codexbar-linux")
 
 
-def _status_icon_name(worst: int) -> str:
-    if worst >= 90:
-        return "critical"
-    if worst >= 70:
-        return "warning"
-    return "ok"
-
-
 class TrayApp:
     def __init__(
         self,
@@ -72,6 +64,7 @@ class TrayApp:
         self._refreshing = False
         self._dashboard: Optional[DashboardWindow] = None
         self._codex_resets = None
+        self._overview_item: Optional[Gtk.MenuItem] = None
 
     def _cfg(self) -> AppConfig:
         if self.get_config:
@@ -94,6 +87,7 @@ class TrayApp:
         overview = Gtk.MenuItem(label="Open Overview…")
         overview.connect("activate", lambda *_: self.open_dashboard())
         menu.append(overview)
+        self._overview_item = overview
         refresh = Gtk.MenuItem(label="Refreshing…" if self._refreshing else "Refresh Now")
         refresh.set_sensitive(not self._refreshing)
         refresh.connect("activate", lambda *_: self._trigger_refresh())
@@ -149,11 +143,24 @@ class TrayApp:
         menu.show_all()
         return menu
 
+    def _set_menu(self, usages: list[ProviderUsage], next_reset: str = "") -> None:
+        """Install a fresh menu; middle-click on the tray item opens the Overview."""
+        if self.indicator is None:
+            return
+        middle_click = hasattr(self.indicator, "set_secondary_activate_target")
+        if middle_click:
+            # Release the old menu's item first; the binding warns when its
+            # target is no longer inside the menu being installed.
+            self.indicator.set_secondary_activate_target(None)
+        self.menu = self._build_menu(usages, next_reset)
+        self.indicator.set_menu(self.menu)
+        overview = getattr(self, "_overview_item", None)
+        if middle_click and overview is not None:
+            self.indicator.set_secondary_activate_target(overview)
+
     def _trigger_refresh(self) -> None:
         self._refreshing = True
-        if self.indicator is not None:
-            self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-            self.indicator.set_menu(self.menu)
+        self._set_menu(self._last_usages, self._last_next_reset)
         self.on_refresh()
 
     def _build_header_label(
@@ -270,9 +277,7 @@ class TrayApp:
         if snapshot is not None and not self._cfg().codex_resets_enabled:
             snapshot = None
         self._codex_resets = snapshot
-        if self.indicator is not None:
-            self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-            self.indicator.set_menu(self.menu)
+        self._set_menu(self._last_usages, self._last_next_reset)
         if self._dashboard is not None:
             self._dashboard.set_codex_resets(snapshot)
         return False
@@ -348,13 +353,11 @@ class TrayApp:
     def _on_settings_saved(self, cfg: AppConfig) -> None:
         if self.on_config_saved:
             self.on_config_saved(cfg)
-        # Rebuild menu immediately with new prefs (hide offline, label mode)
+        # Rebuild menu, ring and label immediately with the new preferences
+        # (hide offline, label mode, warning/critical levels).
         if self.indicator is not None:
-            self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-            self.indicator.set_menu(self.menu)
-            label = self._tray_label(self._last_usages, cfg)
-            if label:
-                self.indicator.set_label(label, label)
+            self._set_menu(self._last_usages, self._last_next_reset)
+            self._apply_status_icon()
         if self._dashboard is not None:
             self._dashboard.update(
                 self._last_usages, self._last_next_reset, self._last_updated_at
@@ -391,27 +394,14 @@ class TrayApp:
         dialog.run()
         dialog.destroy()
 
-    def _icon_for_worst(self, worst_pct: int) -> str:
-        return self.icon_paths.get(_status_icon_name(worst_pct), "")
-
-    def _tray_label(self, usages: list[ProviderUsage], cfg: Optional[AppConfig] = None) -> str:
-        cfg = cfg or self._cfg()
+    def _tray_label(self, usages: list[ProviderUsage], cfg: AppConfig, fallback: str) -> str:
+        """Panel label (shown by GNOME, ignored by Plasma): the ring's own label
+        unless the opt-in headroom heuristic has a qualified answer."""
         if cfg.label_mode == "recommend":
             best_name, _, best_pct = ui.recommendation(usages)
             if best_name:
                 return f"{best_name} {best_pct}%"
-        name, pct = ui.bottleneck(usages)
-        if name:
-            emoji = ui.status_emoji(
-                "crit"
-                if pct >= cfg.threshold_critical
-                else "warn"
-                if pct >= cfg.threshold_warning
-                else "ok"
-            )
-            # Some panels strip emoji; keep name+pct primary
-            return f"{name} {pct}%"
-        return ""
+        return fallback
 
     def _start_countdown(self) -> None:
         if self._countdown_tag:
@@ -421,8 +411,7 @@ class TrayApp:
     def _on_countdown_tick(self) -> bool:
         if self.indicator is None:
             return False
-        self.menu = self._build_menu(self._last_usages, self._last_next_reset)
-        self.indicator.set_menu(self.menu)
+        self._set_menu(self._last_usages, self._last_next_reset)
         self._apply_status_icon()
         if self._dashboard is not None:
             self._dashboard.update(
@@ -441,7 +430,12 @@ class TrayApp:
             self._last_usages, warn_at=cfg.threshold_warning, crit_at=cfg.threshold_critical
         )
         directory = os.path.dirname(self.icon_paths["neutral"])
-        icon_path = ensure_gauge_icon(directory, reading.percent, reading.state, self.icon_theme)
+        # Several providers: one segment each, so one exhausted service does
+        # not paint the whole ring as if everything were at the limit.
+        segments = [(s.percent, s.state) for s in reading.segments] if reading.segmented else None
+        icon_path = ensure_gauge_icon(
+            directory, reading.percent, reading.state, self.icon_theme, segments=segments
+        )
         if self.indicator is not None and icon_path and os.path.exists(icon_path):
             description = APP_NAME + " — " + reading.description
             self.indicator.set_icon_full(icon_path, description)
@@ -451,7 +445,7 @@ class TrayApp:
             if self.indicator.find_property("tooltip-body") is not None:
                 self.indicator.set_property("tooltip-title", APP_NAME + " — " + reading.label)
                 self.indicator.set_property("tooltip-body", reading.description)
-            label = self._tray_label(self._last_usages, cfg) if cfg.label_mode == "recommend" else reading.label
+            label = self._tray_label(self._last_usages, cfg, reading.label)
             self.indicator.set_label(label, label)
 
     def update(
@@ -467,10 +461,7 @@ class TrayApp:
         self._last_next_reset = next_reset
         self._last_updated_at = updated_at or datetime.now(timezone.utc)
 
-        self.menu = self._build_menu(usages, next_reset)
-        self.indicator.set_menu(self.menu)
-
-        cfg = self._cfg()
+        self._set_menu(usages, next_reset)
         self._apply_status_icon()
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 
@@ -495,8 +486,7 @@ class TrayApp:
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_icon_full(icon_path, APP_NAME)
 
-        self.menu = self._build_menu([], "")
-        self.indicator.set_menu(self.menu)
+        self._set_menu([], "")
         self._start_countdown()
 
         cfg = self._cfg()
